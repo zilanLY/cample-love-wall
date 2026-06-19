@@ -1,0 +1,1196 @@
+html = '''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园心愿墙 - 管理后台</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; }
+        .login-container { display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .login-box { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); width: 100%; max-width: 400px; }
+        .login-box h2 { text-align: center; margin-bottom: 30px; }
+        .login-box .logo { text-align: center; font-size: 48px; margin-bottom: 10px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-size: 14px; font-weight: 500; color: #555; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; outline: none; transition: border-color 0.3s; font-family: inherit; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #667eea; }
+        .btn { padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; width: 100%; }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btn-secondary { background: #f0f0f0; color: #666; }
+        .btn-secondary:hover { background: #e0e0e0; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-success:hover { background: #43a047; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-danger:hover { background: #e53935; }
+        .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: 6px; }
+        .error-message { color: #f44336; font-size: 13px; margin-top: 10px; text-align: center; }
+        .admin-layout { display: flex; min-height: 100vh; }
+        .sidebar { width: 220px; background: linear-gradient(180deg, #1a1f36 0%, #2d3748 100%); color: white; padding: 20px 0; position: fixed; height: 100vh; overflow-y: auto; }
+        .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+        .sidebar-header h3 { font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .sidebar-menu { list-style: none; }
+        .sidebar-menu li { margin-bottom: 5px; }
+        .sidebar-menu a { display: flex; align-items: center; gap: 12px; padding: 12px 20px; color: rgba(255,255,255,0.7); text-decoration: none; transition: all 0.3s; cursor: pointer; font-size: 14px; }
+        .sidebar-menu a:hover { background: rgba(255,255,255,0.1); color: white; }
+        .sidebar-menu a.active { background: rgba(102, 126, 234, 0.3); color: white; border-left: 3px solid #667eea; }
+        .sidebar-menu a .icon { font-size: 18px; width: 24px; text-align: center; }
+        .sidebar-footer { position: absolute; bottom: 20px; left: 0; right: 0; padding: 0 20px; }
+        .user-info { display: flex; align-items: center; gap: 10px; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 10px; }
+        .user-avatar { width: 36px; height: 36px; background: #667eea; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; }
+        .user-name { font-size: 14px; font-weight: 500; }
+        .logout-btn { width: 100%; padding: 10px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); border: none; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .logout-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+        .main-content { flex: 1; margin-left: 220px; padding: 30px; }
+        .page-header { margin-bottom: 25px; }
+        .page-header h1 { font-size: 24px; color: #333; margin-bottom: 5px; }
+        .page-header p { color: #999; font-size: 14px; }
+        .card { background: white; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 24px; margin-bottom: 20px; }
+        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #f0f0f0; }
+        .card-header h3 { font-size: 18px; color: #333; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .stat-card { background: white; border-radius: 12px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 20px; }
+        .stat-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 28px; }
+        .stat-icon.purple { background: #f3e8ff; }
+        .stat-icon.blue { background: #e3f2fd; }
+        .stat-icon.green { background: #e8f5e9; }
+        .stat-icon.orange { background: #fff3e0; }
+        .stat-icon.red { background: #ffebee; }
+        .stat-info .number { font-size: 28px; font-weight: 700; color: #333; }
+        .stat-info .label { font-size: 13px; color: #999; margin-top: 4px; }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        th { background: #fafafa; font-weight: 600; font-size: 13px; color: #666; }
+        td { font-size: 14px; color: #333; }
+        tr:hover { background: #fafafa; }
+        .status-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .status-badge.pending { background: #fff3e0; color: #f57c00; }
+        .status-badge.approved { background: #e8f5e9; color: #388e3c; }
+        .status-badge.rejected { background: #ffebee; color: #d32f2f; }
+        .type-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .type-badge.wish { background: #e3f2fd; color: #1976d2; }
+        .type-badge.confession { background: #fce4ec; color: #c2185b; }
+        .type-badge.daily { background: #e8f5e9; color: #388e3c; }
+        .type-badge.rant { background: #fff3e0; color: #f57c00; }
+        .action-btns { display: flex; gap: 8px; }
+        .filter-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .filter-bar select, .filter-bar input { padding: 8px 14px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; outline: none; }
+        .filter-bar select:focus, .filter-bar input:focus { border-color: #667eea; }
+        .filter-bar .search-input { min-width: 200px; }
+        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+        .pagination button { padding: 8px 14px; border: 1px solid #ddd; background: white; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .pagination button:hover { border-color: #667eea; color: #667eea; }
+        .pagination button.active { background: #667eea; color: white; border-color: #667eea; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center; padding: 20px; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: white; border-radius: 16px; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; animation: modalIn 0.3s; }
+        @keyframes modalIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 18px; }
+        .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; line-height: 1; }
+        .modal-body { padding: 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 12px; }
+        .toast { position: fixed; top: 20px; right: 20px; transform: translateX(400px); background: #333; color: white; padding: 12px 24px; border-radius: 10px; z-index: 2000; transition: transform 0.3s; font-size: 14px; }
+        .toast.show { transform: translateX(0); }
+        .toast.success { background: #4caf50; }
+        .toast.error { background: #f44336; }
+        .content-preview { background: #fafafa; padding: 16px; border-radius: 8px; line-height: 1.7; font-size: 14px; margin-bottom: 15px; max-height: 300px; overflow-y: auto; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .3s; border-radius: 26px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #667eea; }
+        input:checked + .slider:before { transform: translateX(24px); }
+        .config-item { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid #f0f0f0; }
+        .config-item:last-child { border-bottom: none; }
+        .config-label { font-weight: 500; color: #333; }
+        .config-desc { font-size: 13px; color: #999; margin-top: 4px; }
+        .batch-actions { display: flex; gap: 10px; margin-bottom: 15px; padding: 15px; background: #f5f7fa; border-radius: 8px; align-items: center; }
+        .batch-actions .selected-count { font-size: 14px; color: #666; }
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state .emoji { font-size: 48px; margin-bottom: 15px; }
+        .level-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; }
+        .level-1 { background: #e3f2fd; color: #1976d2; }
+        .level-2 { background: #fff3e0; color: #f57c00; }
+        .level-3 { background: #ffebee; color: #d32f2f; }
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; }
+            .sidebar-header h3 span, .sidebar-menu a span, .user-name, .logout-btn span { display: none; }
+            .main-content { margin-left: 60px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loginPage" class="login-container">
+        <div class="login-box">
+            <div class="logo">🎯</div>
+            <h2>校园心愿墙管理后台</h2>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>用户名</label>
+                    <input type="text" id="username" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label>密码</label>
+                    <input type="password" id="password" placeholder="请输入密码" required>
+                </div>
+                <button type="submit" class="btn btn-primary" id="loginBtn">登录</button>
+                <div class="error-message" id="loginError"></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="adminPage" class="admin-layout" style="display:none;">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h3>🎯 <span>心愿墙管理</span></h3>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a class="active" data-page="dashboard" onclick="switchPage('dashboard')">
+                    <span class="icon">📊</span><span>仪表盘</span>
+                </a></li>
+                <li><a data-page="review" onclick="switchPage('review')">
+                    <span class="icon">✅</span><span>内容审核</span>
+                </a></li>
+                <li><a data-page="posts" onclick="switchPage('posts')">
+                    <span class="icon">📝</span><span>内容管理</span>
+                </a></li>
+                <li><a data-page="categories" onclick="switchPage('categories')">
+                    <span class="icon">🏷️</span><span>分类管理</span>
+                </a></li>
+                <li><a data-page="sensitive" onclick="switchPage('sensitive')">
+                    <span class="icon">🚫</span><span>敏感词管理</span>
+                </a></li>
+                <li><a data-page="ai-config" onclick="switchPage('ai-config')">
+                    <span class="icon">🤖</span><span>AI 审核配置</span>
+                </a></li>
+                <li><a data-page="settings" onclick="switchPage('settings')">
+                    <span class="icon">⚙️</span><span>系统设置</span>
+                </a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div><div class="user-name" id="userName">admin</div></div>
+                </div>
+                <button class="logout-btn" onclick="handleLogout()">
+                    <span>🚪 退出登录</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div id="page-dashboard" class="page">
+                <div class="page-header">
+                    <h1>仪表盘</h1>
+                    <p>查看心愿墙的整体数据概览</p>
+                </div>
+                <div class="stats-grid" id="statsGrid"></div>
+                <div class="card">
+                    <div class="card-header"><h3>按类型统计</h3></div>
+                    <div id="typeStats"></div>
+                </div>
+            </div>
+
+            <div id="page-review" class="page" style="display:none;">
+                <div class="page-header">
+                    <h1>内容审核</h1>
+                    <p>审核用户发布的内容</p>
+                </div>
+                <div class="card">
+                    <div class="filter-bar">
+                        <select id="reviewTypeFilter" onchange="loadReviewPosts()">
+                            <option value="">全部类型</option>
+                            <option value="wish">心愿</option>
+                            <option value="confession">表白</option>
+                            <option value="daily">日常</option>
+                            <option value="rant">吐槽</option>
+                        </select>
+                        <input type="text" class="search-input" id="reviewSearch" placeholder="搜索内容..." oninput="debounceLoadReview()">
+                    </div>
+                    <div class="batch-actions" id="batchActions" style="display:none;">
+                        <span class="selected-count">已选择 <span id="selectedCount">0</span> 项</span>
+                        <button class="btn btn-success btn-sm" onclick="batchReview('approved')">批量通过</button>
+                        <button class="btn btn-danger btn-sm" onclick="batchReview('rejected')">批量驳回</button>
+                        <button class="btn btn-secondary btn-sm" onclick="clearSelection()">取消选择</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;"><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                                    <th>内容</th>
+                                    <th>类型</th>
+                                    <th>分类</th>
+                                    <th>作者</th>
+                                    <th>发布时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reviewTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="reviewPagination"></div>
+                </div>
+            </div>
+
+            <div id="page-posts" class="page" style="display:none;">
+                <div class="page-header">
+                    <h1>内容管理</h1>
+                    <p>管理所有内容</p>
+                </div>
+                <div class="card">
+                    <div class="filter-bar">
+                        <select id="postsStatusFilter" onchange="loadAllPosts()">
+                            <option value="">全部状态</option>
+                            <option value="pending">待审核</option>
+                            <option value="approved">已通过</option>
+                            <option value="rejected">已驳回</option>
+                        </select>
+                        <select id="postsTypeFilter" onchange="loadAllPosts()">
+                            <option value="">全部类型</option>
+                            <option value="wish">心愿</option>
+                            <option value="confession">表白</option>
+                            <option value="daily">日常</option>
+                            <option value="rant">吐槽</option>
+                        </select>
+                        <input type="text" class="search-input" id="postsSearch" placeholder="搜索内容..." oninput="debounceLoadPosts()">
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>内容</th>
+                                    <th>类型</th>
+                                    <th>状态</th>
+                                    <th>点赞</th>
+                                    <th>发布时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="postsTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="postsPagination"></div>
+                </div>
+            </div>
+
+            <div id="page-categories" class="page" style="display:none;">
+                <div class="page-header">
+                    <h1>分类管理</h1>
+                    <p>管理内容分类</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>分类列表</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openCategoryModal()">+ 新增分类</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>图标</th>
+                                    <th>名称</th>
+                                    <th>类型</th>
+                                    <th>排序</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="categoriesTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-sensitive" class="page" style="display:none;">
+                <div class="page-header">
+                    <h1>敏感词管理</h1>
+                    <p>管理关键词审核词库</p>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3>敏感词列表</h3>
+                        <div style="display:flex;gap:10px;">
+                            <button class="btn btn-secondary btn-sm" onclick="openBatchImportModal()">批量导入</button>
+                            <button class="btn btn-primary btn-sm" onclick="openSensitiveModal()">+ 新增</button>
+                        </div>
+                    </div>
+                    <div class="filter-bar">
+                        <select id="sensitiveCategoryFilter" onchange="loadSensitiveWords()">
+                            <option value="">全部分类</option>
+                            <option value="politics">政治敏感</option>
+                            <option value="porn">色情低俗</option>
+                            <option value="violence">暴力违法</option>
+                            <option value="ad">广告引流</option>
+                            <option value="other">其他</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>敏感词</th>
+                                    <th>分类</th>
+                                    <th>等级</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sensitiveTableBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="page-ai-config" class="page" style="display:none;">
+                <div class="page-header">
+                    <h1>AI 审核配置</h1>
+                    <p>配置 AI 智能审核相关参数</p>
+                </div>
+                <div class="card">
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">启用 AI 审核</div>
+                            <div class="config-desc">开启后发布内容将经过 AI 智能审核</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="aiEnabled">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">AI 提供方</div>
+                            <div class="config-desc">选择使用的 AI 服务</div>
+                        </div>
+                        <select id="aiProvider" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;">
+                            <option value="openai">OpenAI 格式</option>
+                            <option value="xunfei">讯飞星火</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">审核严格度</div>
+                            <div class="config-desc">严格程度越高，拦截越严格</div>
+                        </div>
+                        <select id="aiStrictness" style="padding:8px 12px;border-radius:8px;border:1px solid #ddd;">
+                            <option value="loose">宽松</option>
+                            <option value="medium">中等</option>
+                            <option value="strict">严格</option>
+                        </select>
+                    </div>
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">自动驳回违规内容</div>
+                            <div class="config-desc">AI 判定违规时直接拒绝，否则进入人工审核</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="autoReject" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>审核维度</h3></div>
+                    <div class="config-item">
+                        <div><div class="config-label">政治敏感</div></div>
+                        <label class="switch"><input type="checkbox" id="dimPolitics" checked><span class="slider"></span></label>
+                    </div>
+                    <div class="config-item">
+                        <div><div class="config-label">色情低俗</div></div>
+                        <label class="switch"><input type="checkbox" id="dimPorn" checked><span class="slider"></span></label>
+                    </div>
+                    <div class="config-item">
+                        <div><div class="config-label">暴力违法</div></div>
+                        <label class="switch"><input type="checkbox" id="dimViolence" checked><span class="slider"></span></label>
+                    </div>
+                    <div class="config-item">
+                        <div><div class="config-label">广告引流</div></div>
+                        <label class="switch"><input type="checkbox" id="dimAd" checked><span class="slider"></span></label>
+                    </div>
+                    <div class="config-item">
+                        <div><div class="config-label">辱骂攻击</div></div>
+                        <label class="switch"><input type="checkbox" id="dimAbuse" checked><span class="slider"></span></label>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>OpenAI 配置</h3></div>
+                    <div class="form-group">
+                        <label>API Base URL</label>
+                        <input type="text" id="openaiBaseUrl" placeholder="https://api.openai.com/v1">
+                    </div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="openaiApiKey" placeholder="sk-...">
+                    </div>
+                    <div class="form-group">
+                        <label>模型名称</label>
+                        <input type="text" id="openaiModel" placeholder="gpt-3.5-turbo">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"><h3>讯飞星火配置</h3></div>
+                    <div class="form-group">
+                        <label>API Key</label>
+                        <input type="password" id="xunfeiApiKey" placeholder="请输入 API Key">
+                    </div>
+                    <div class="form-group">
+                        <label>模型名称</label>
+                        <input type="text" id="xunfeiModel" placeholder="generalv3.5">
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:15px;justify-content:flex-end;">
+                    <button class="btn btn-secondary" onclick="testAIConfig()">测试连接</button>
+                    <button class="btn btn-primary" onclick="saveAIConfig()">保存配置</button>
+                </div>
+            </div>
+
+            <div id="page-settings" class="page" style="display:none;">
+                <div class="page-header">
+                    <h1>系统设置</h1>
+                    <p>配置系统参数</p>
+                </div>
+                <div class="card">
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">最大内容长度</div>
+                            <div class="config-desc">用户发布内容的最大字数限制</div>
+                        </div>
+                        <input type="number" id="maxContentLength" value="500" style="width:100px;padding:8px;border-radius:8px;border:1px solid #ddd;">
+                    </div>
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">需要人工审核</div>
+                            <div class="config-desc">即使 AI 通过也需要人工审核后才展示</div>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" id="needManualReview">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="margin-top:20px;text-align:right;">
+                        <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="reviewModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>内容详情</h3>
+                <button class="modal-close" onclick="closeModal('reviewModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom:15px;">
+                    <span class="type-badge" id="reviewModalType"></span>
+                    <span class="status-badge" id="reviewModalStatus" style="margin-left:10px;"></span>
+                </div>
+                <div class="content-preview" id="reviewModalContent"></div>
+                <div style="font-size:13px;color:#999;margin-bottom:15px;">
+                    <span id="reviewModalAuthor"></span> · <span id="reviewModalTime"></span>
+                </div>
+                <div class="form-group">
+                    <label>审核备注（选填）</label>
+                    <textarea id="reviewReason" placeholder="驳回原因或审核备注..." rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('reviewModal')">取消</button>
+                <button class="btn btn-danger" onclick="submitReview('rejected')">驳回</button>
+                <button class="btn btn-success" onclick="submitReview('approved')">通过</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="categoryModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="categoryModalTitle">新增分类</h3>
+                <button class="modal-close" onclick="closeModal('categoryModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>分类名称</label>
+                    <input type="text" id="categoryName" placeholder="请输入分类名称">
+                </div>
+                <div class="form-group">
+                    <label>图标（Emoji）</label>
+                    <input type="text" id="categoryIcon" placeholder="🎯 选填">
+                </div>
+                <div class="form-group">
+                    <label>内容类型</label>
+                    <select id="categoryPostType">
+                        <option value="wish">心愿</option>
+                        <option value="confession">表白</option>
+                        <option value="daily">日常</option>
+                        <option value="rant">吐槽</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>排序</label>
+                    <input type="number" id="categorySort" value="0" placeholder="数字越小越靠前">
+                </div>
+                <div class="form-group">
+                    <label><input type="checkbox" id="categoryActive" checked> 启用</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('categoryModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveCategory()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="sensitiveModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="sensitiveModalTitle">新增敏感词</h3>
+                <button class="modal-close" onclick="closeModal('sensitiveModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>敏感词</label>
+                    <input type="text" id="sensitiveWord" placeholder="请输入敏感词">
+                </div>
+                <div class="form-group">
+                    <label>分类</label>
+                    <select id="sensitiveCategory">
+                        <option value="politics">政治敏感</option>
+                        <option value="porn">色情低俗</option>
+                        <option value="violence">暴力违法</option>
+                        <option value="ad">广告引流</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>等级</label>
+                    <select id="sensitiveLevel">
+                        <option value="1">1 - 提示（仅记录，不拦截）</option>
+                        <option value="2" selected>2 - 拒绝（拦截发布）</option>
+                        <option value="3">3 - 严重（拒绝并记录）</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('sensitiveModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveSensitiveWord()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="batchImportModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>批量导入敏感词</h3>
+                <button class="modal-close" onclick="closeModal('batchImportModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>敏感词列表</label>
+                    <textarea id="batchWords" placeholder="每行一个敏感词，或用逗号分隔" rows="10"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>默认分类</label>
+                    <select id="batchCategory">
+                        <option value="politics">政治敏感</option>
+                        <option value="porn">色情低俗</option>
+                        <option value="violence">暴力违法</option>
+                        <option value="ad">广告引流</option>
+                        <option value="other">其他</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>默认等级</label>
+                    <select id="batchLevel">
+                        <option value="1">1 - 提示</option>
+                        <option value="2" selected>2 - 拒绝</option>
+                        <option value="3">3 - 严重</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('batchImportModal')">取消</button>
+                <button class="btn btn-primary" onclick="batchImportSensitive()">导入</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        let token = localStorage.getItem('admin_token') || '';
+        let currentPage = 'dashboard';
+        let currentReviewPage = 1;
+        let currentPostsPage = 1;
+        let selectedPosts = new Set();
+        let currentReviewPostId = null;
+        let editingCategoryId = null;
+        let editingSensitiveId = null;
+
+        const typeNames = { wish: '心愿', confession: '表白', daily: '日常', rant: '吐槽' };
+        const categoryNames = { politics: '政治敏感', porn: '色情低俗', violence: '暴力违法', ad: '广告引流', other: '其他' };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            if (token) showAdminPage();
+        });
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
+            const errorEl = document.getElementById('loginError');
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+            errorEl.textContent = '';
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (data.code === 0) {
+                    token = data.data.token;
+                    localStorage.setItem('admin_token', token);
+                    localStorage.setItem('admin_user', JSON.stringify(data.data.user));
+                    showAdminPage();
+                } else {
+                    errorEl.textContent = data.message;
+                }
+            } catch (e) {
+                errorEl.textContent = '登录失败，请稍后重试';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        }
+
+        function handleLogout() {
+            token = '';
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_user');
+            document.getElementById('adminPage').style.display = 'none';
+            document.getElementById('loginPage').style.display = 'flex';
+        }
+
+        function showAdminPage() {
+            document.getElementById('loginPage').style.display = 'none';
+            document.getElementById('adminPage').style.display = 'flex';
+            const user = JSON.parse(localStorage.getItem('admin_user') || '{}');
+            document.getElementById('userName').textContent = user.username || 'admin';
+            document.getElementById('userAvatar').textContent = (user.username || 'A').charAt(0).toUpperCase();
+            loadDashboard();
+        }
+
+        function switchPage(page) {
+            currentPage = page;
+            document.querySelectorAll('.sidebar-menu a').forEach(a => {
+                a.classList.toggle('active', a.dataset.page === page);
+            });
+            document.querySelectorAll('.page').forEach(p => { p.style.display = 'none'; });
+            document.getElementById('page-' + page).style.display = 'block';
+            switch(page) {
+                case 'dashboard': loadDashboard(); break;
+                case 'review': loadReviewPosts(); break;
+                case 'posts': loadAllPosts(); break;
+                case 'categories': loadCategories(); break;
+                case 'sensitive': loadSensitiveWords(); break;
+                case 'ai-config': loadAIConfig(); break;
+                case 'settings': loadSettings(); break;
+            }
+        }
+
+        async function apiRequest(url, options = {}) {
+            const headers = { 'Content-Type': 'application/json', ...options.headers };
+            if (token) headers['Authorization'] = 'Bearer ' + token;
+            try {
+                const res = await fetch(url, { ...options, headers });
+                const data = await res.json();
+                if (res.status === 401) {
+                    handleLogout();
+                    showToast('登录已过期，请重新登录', 'error');
+                    return null;
+                }
+                return data;
+            } catch (e) {
+                console.error('API 请求失败:', e);
+                showToast('网络错误，请稍后重试', 'error');
+                return null;
+            }
+        }
+
+        async function loadDashboard() {
+            const data = await apiRequest('/api/admin/stats');
+            if (!data || data.code !== 0) return;
+            const stats = data.data;
+            const grid = document.getElementById('statsGrid');
+            grid.innerHTML = '<div class="stat-card"><div class="stat-icon purple">📝</div><div class="stat-info"><div class="number">' + stats.totalPosts + '</div><div class="label">已发布内容</div></div></div>' +
+                '<div class="stat-card"><div class="stat-icon orange">⏳</div><div class="stat-info"><div class="number">' + stats.pendingPosts + '</div><div class="label">待审核</div></div></div>' +
+                '<div class="stat-card"><div class="stat-icon blue">📅</div><div class="stat-info"><div class="number">' + stats.todayPosts + '</div><div class="label">今日新增</div></div></div>' +
+                '<div class="stat-card"><div class="stat-icon red">❤️</div><div class="stat-info"><div class="number">' + stats.totalLikes + '</div><div class="label">总点赞</div></div></div>' +
+                '<div class="stat-card"><div class="stat-icon green">🏷️</div><div class="stat-info"><div class="number">' + stats.totalCategories + '</div><div class="label">分类数</div></div></div>';
+            const typeStats = document.getElementById('typeStats');
+            if (stats.typeStats && stats.typeStats.length > 0) {
+                let html = '<div style="display:flex;gap:20px;flex-wrap:wrap;">';
+                stats.typeStats.forEach(item => {
+                    const typeName = typeNames[item.post_type] || item.post_type;
+                    html += '<div style="flex:1;min-width:150px;padding:20px;background:#fafafa;border-radius:10px;text-align:center;"><div style="font-size:32px;font-weight:700;color:#667eea;">' + item.count + '</div><div style="font-size:14px;color:#999;margin-top:5px;">' + typeName + '</div></div>';
+                });
+                html += '</div>';
+                typeStats.innerHTML = html;
+            } else {
+                typeStats.innerHTML = '<div class="empty-state"><div class="emoji">📊</div><p>暂无数据</p></div>';
+            }
+        }
+
+        async function loadReviewPosts() {
+            const type = document.getElementById('reviewTypeFilter').value;
+            const search = document.getElementById('reviewSearch').value.trim();
+            const params = new URLSearchParams({ status: 'pending', page: currentReviewPage, pageSize: 10 });
+            if (type) params.append('type', type);
+            if (search) params.append('search', search);
+            const data = await apiRequest('/api/admin/posts?' + params.toString());
+            if (!data || data.code !== 0) return;
+            const tbody = document.getElementById('reviewTableBody');
+            const posts = data.data.list;
+            if (posts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="emoji">🎉</div><p>暂无待审核内容</p></div></td></tr>';
+            } else {
+                tbody.innerHTML = posts.map(post => '<tr><td><input type="checkbox" class="post-checkbox" value="' + post.id + '" onchange="updateSelection()"></td><td style="max-width:300px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(post.content) + '</div></td><td><span class="type-badge ' + post.post_type + '">' + typeNames[post.post_type] + '</span></td><td>' + (post.category_name || '-') + '</td><td>' + escapeHtml(post.author || '匿名') + '</td><td>' + formatDate(post.created_at) + '</td><td><div class="action-btns"><button class="btn btn-success btn-sm" onclick="openReviewModal(' + post.id + ')">审核</button></div></td></tr>').join('');
+            }
+            renderPagination('reviewPagination', data.data, currentReviewPage, (page) => { currentReviewPage = page; loadReviewPosts(); });
+            updateBatchActions();
+        }
+
+        let reviewSearchTimer;
+        function debounceLoadReview() {
+            clearTimeout(reviewSearchTimer);
+            reviewSearchTimer = setTimeout(() => { currentReviewPage = 1; loadReviewPosts(); }, 500);
+        }
+
+        async function openReviewModal(id) {
+            currentReviewPostId = id;
+            const res = await apiRequest('/api/posts/' + id);
+            if (!res || res.code !== 0) return;
+            const post = res.data;
+            document.getElementById('reviewModalType').textContent = typeNames[post.post_type];
+            document.getElementById('reviewModalType').className = 'type-badge ' + post.post_type;
+            document.getElementById('reviewModalStatus').textContent = post.status === 'pending' ? '待审核' : post.status === 'approved' ? '已通过' : '已驳回';
+            document.getElementById('reviewModalStatus').className = 'status-badge ' + post.status;
+            document.getElementById('reviewModalContent').textContent = post.content;
+            document.getElementById('reviewModalAuthor').textContent = post.author || '匿名';
+            document.getElementById('reviewModalTime').textContent = formatDate(post.created_at);
+            document.getElementById('reviewReason').value = '';
+            document.getElementById('reviewModal').classList.add('show');
+        }
+
+        async function submitReview(status) {
+            const reason = document.getElementById('reviewReason').value.trim();
+            const data = await apiRequest('/api/admin/posts/' + currentReviewPostId + '/review', {
+                method: 'PUT',
+                body: JSON.stringify({ status, reason })
+            });
+            if (data && data.code === 0) {
+                showToast('审核成功', 'success');
+                closeModal('reviewModal');
+                loadReviewPosts();
+                loadDashboard();
+            }
+        }
+
+        function toggleSelectAll() {
+            const checked = document.getElementById('selectAll').checked;
+            document.querySelectorAll('.post-checkbox').forEach(cb => {
+                cb.checked = checked;
+                if (checked) selectedPosts.add(parseInt(cb.value));
+                else selectedPosts.delete(parseInt(cb.value));
+            });
+            updateBatchActions();
+        }
+
+        function updateSelection() {
+            selectedPosts.clear();
+            document.querySelectorAll('.post-checkbox:checked').forEach(cb => { selectedPosts.add(parseInt(cb.value)); });
+            updateBatchActions();
+        }
+
+        function updateBatchActions() {
+            const batchActions = document.getElementById('batchActions');
+            document.getElementById('selectedCount').textContent = selectedPosts.size;
+            batchActions.style.display = selectedPosts.size > 0 ? 'flex' : 'none';
+        }
+
+        function clearSelection() {
+            selectedPosts.clear();
+            document.querySelectorAll('.post-checkbox').forEach(cb => cb.checked = false);
+            document.getElementById('selectAll').checked = false;
+            updateBatchActions();
+        }
+
+        async function batchReview(status) {
+            if (selectedPosts.size === 0) return;
+            if (!confirm('确定要批量' + (status === 'approved' ? '通过' : '驳回') + ' ' + selectedPosts.size + ' 条内容吗？')) return;
+            const data = await apiRequest('/api/admin/posts/batch-review', {
+                method: 'POST',
+                body: JSON.stringify({ ids: Array.from(selectedPosts), status })
+            });
+            if (data && data.code === 0) {
+                showToast('成功审核 ' + data.data.successCount + ' 条内容', 'success');
+                clearSelection();
+                loadReviewPosts();
+                loadDashboard();
+            }
+        }
+
+        async function loadAllPosts() {
+            const status = document.getElementById('postsStatusFilter').value;
+            const type = document.getElementById('postsTypeFilter').value;
+            const search = document.getElementById('postsSearch').value.trim();
+            const params = new URLSearchParams({ page: currentPostsPage, pageSize: 10 });
+            if (status) params.append('status', status);
+            if (type) params.append('type', type);
+            if (search) params.append('search', search);
+            const data = await apiRequest('/api/admin/posts?' + params.toString());
+            if (!data || data.code !== 0) return;
+            const tbody = document.getElementById('postsTableBody');
+            const posts = data.data.list;
+            if (posts.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="emoji">📭</div><p>暂无内容</p></div></td></tr>';
+            } else {
+                tbody.innerHTML = posts.map(post => '<tr><td>' + post.id + '</td><td style="max-width:300px;"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(post.content) + '</div></td><td><span class="type-badge ' + post.post_type + '">' + typeNames[post.post_type] + '</span></td><td><span class="status-badge ' + post.status + '">' + (post.status === 'pending' ? '待审核' : post.status === 'approved' ? '已通过' : '已驳回') + '</span></td><td>' + post.likes + '</td><td>' + formatDate(post.created_at) + '</td><td><div class="action-btns"><button class="btn btn-secondary btn-sm" onclick="deletePost(' + post.id + ')">删除</button></div></td></tr>').join('');
+            }
+            renderPagination('postsPagination', data.data, currentPostsPage, (page) => { currentPostsPage = page; loadAllPosts(); });
+        }
+
+        let postsSearchTimer;
+        function debounceLoadPosts() {
+            clearTimeout(postsSearchTimer);
+            postsSearchTimer = setTimeout(() => { currentPostsPage = 1; loadAllPosts(); }, 500);
+        }
+
+        async function deletePost(id) {
+            if (!confirm('确定要删除这条内容吗？')) return;
+            const data = await apiRequest('/api/admin/posts/' + id, { method: 'DELETE' });
+            if (data && data.code === 0) {
+                showToast('删除成功', 'success');
+                loadAllPosts();
+                loadDashboard();
+            }
+        }
+
+        async function loadCategories() {
+            const data = await apiRequest('/api/admin/categories');
+            if (!data || data.code !== 0) return;
+            const tbody = document.getElementById('categoriesTableBody');
+            const categories = data.data;
+            tbody.innerHTML = categories.map(cat => '<tr><td>' + cat.id + '</td><td>' + (cat.icon || '-') + '</td><td>' + cat.name + '</td><td><span class="type-badge ' + cat.post_type + '">' + typeNames[cat.post_type] + '</span></td><td>' + cat.sort + '</td><td>' + (cat.is_active ? '<span class="status-badge approved">启用</span>' : '<span class="status-badge rejected">禁用</span>') + '</td><td><div class="action-btns"><button class="btn btn-secondary btn-sm" onclick="editCategory(' + cat.id + ')">编辑</button><button class="btn btn-danger btn-sm" onclick="deleteCategory(' + cat.id + ')">删除</button></div></td></tr>').join('');
+        }
+
+        function openCategoryModal() {
+            editingCategoryId = null;
+            document.getElementById('categoryModalTitle').textContent = '新增分类';
+            document.getElementById('categoryName').value = '';
+            document.getElementById('categoryIcon').value = '';
+            document.getElementById('categoryPostType').value = 'wish';
+            document.getElementById('categorySort').value = 0;
+            document.getElementById('categoryActive').checked = true;
+            document.getElementById('categoryModal').classList.add('show');
+        }
+
+        async function editCategory(id) {
+            const data = await apiRequest('/api/admin/categories');
+            if (!data || data.code !== 0) return;
+            const cat = data.data.find(c => c.id === id);
+            if (!cat) return;
+            editingCategoryId = id;
+            document.getElementById('categoryModalTitle').textContent = '编辑分类';
+            document.getElementById('categoryName').value = cat.name;
+            document.getElementById('categoryIcon').value = cat.icon || '';
+            document.getElementById('categoryPostType').value = cat.post_type;
+            document.getElementById('categorySort').value = cat.sort;
+            document.getElementById('categoryActive').checked = cat.is_active === 1;
+            document.getElementById('categoryModal').classList.add('show');
+        }
+
+        async function saveCategory() {
+            const name = document.getElementById('categoryName').value.trim();
+            const icon = document.getElementById('categoryIcon').value.trim();
+            const postType = document.getElementById('categoryPostType').value;
+            const sort = parseInt(document.getElementById('categorySort').value) || 0;
+            const isActive = document.getElementById('categoryActive').checked;
+            if (!name) { showToast('请输入分类名称', 'error'); return; }
+            const url = editingCategoryId ? '/api/admin/categories/' + editingCategoryId : '/api/admin/categories';
+            const method = editingCategoryId ? 'PUT' : 'POST';
+            const data = await apiRequest(url, { method, body: JSON.stringify({ name, icon, postType, sort, isActive }) });
+            if (data && data.code === 0) {
+                showToast('保存成功', 'success');
+                closeModal('categoryModal');
+                loadCategories();
+            }
+        }
+
+        async function deleteCategory(id) {
+            if (!confirm('确定要删除这个分类吗？')) return;
+            const data = await apiRequest('/api/admin/categories/' + id, { method: 'DELETE' });
+            if (data && data.code === 0) {
+                showToast('删除成功', 'success');
+                loadCategories();
+            }
+        }
+
+        async function loadSensitiveWords() {
+            const category = document.getElementById('sensitiveCategoryFilter').value;
+            const params = new URLSearchParams();
+            if (category) params.append('category', category);
+            const data = await apiRequest('/api/admin/sensitive-words?' + params.toString());
+            if (!data || data.code !== 0) return;
+            const tbody = document.getElementById('sensitiveTableBody');
+            const words = data.data;
+            if (words.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="emoji">📭</div><p>暂无敏感词</p></div></td></tr>';
+            } else {
+                tbody.innerHTML = words.map(word => '<tr><td>' + word.id + '</td><td><code>' + escapeHtml(word.word) + '</code></td><td>' + (categoryNames[word.category] || word.category) + '</td><td><span class="level-badge level-' + word.level + '">等级 ' + word.level + '</span></td><td><div class="action-btns"><button class="btn btn-secondary btn-sm" onclick="editSensitiveWord(' + word.id + ')">编辑</button><button class="btn btn-danger btn-sm" onclick="deleteSensitiveWord(' + word.id + ')">删除</button></div></td></tr>').join('');
+            }
+        }
+
+        function openSensitiveModal() {
+            editingSensitiveId = null;
+            document.getElementById('sensitiveModalTitle').textContent = '新增敏感词';
+            document.getElementById('sensitiveWord').value = '';
+            document.getElementById('sensitiveCategory').value = 'other';
+            document.getElementById('sensitiveLevel').value = '2';
+            document.getElementById('sensitiveModal').classList.add('show');
+        }
+
+        async function editSensitiveWord(id) {
+            const data = await apiRequest('/api/admin/sensitive-words');
+            if (!data || data.code !== 0) return;
+            const word = data.data.find(w => w.id === id);
+            if (!word) return;
+            editingSensitiveId = id;
+            document.getElementById('sensitiveModalTitle').textContent = '编辑敏感词';
+            document.getElementById('sensitiveWord').value = word.word;
+            document.getElementById('sensitiveCategory').value = word.category;
+            document.getElementById('sensitiveLevel').value = word.level;
+            document.getElementById('sensitiveModal').classList.add('show');
+        }
+
+        async function saveSensitiveWord() {
+            const word = document.getElementById('sensitiveWord').value.trim();
+            const category = document.getElementById('sensitiveCategory').value;
+            const level = parseInt(document.getElementById('sensitiveLevel').value);
+            if (!word) { showToast('请输入敏感词', 'error'); return; }
+            const url = editingSensitiveId ? '/api/admin/sensitive-words/' + editingSensitiveId : '/api/admin/sensitive-words';
+            const method = editingSensitiveId ? 'PUT' : 'POST';
+            const data = await apiRequest(url, { method, body: JSON.stringify({ word, category, level }) });
+            if (data && data.code === 0) {
+                showToast('保存成功', 'success');
+                closeModal('sensitiveModal');
+                loadSensitiveWords();
+            } else {
+                showToast(data?.message || '保存失败', 'error');
+            }
+        }
+
+        async function deleteSensitiveWord(id) {
+            if (!confirm('确定要删除这个敏感词吗？')) return;
+            const data = await apiRequest('/api/admin/sensitive-words/' + id, { method: 'DELETE' });
+            if (data && data.code === 0) {
+                showToast('删除成功', 'success');
+                loadSensitiveWords();
+            }
+        }
+
+        function openBatchImportModal() {
+            document.getElementById('batchWords').value = '';
+            document.getElementById('batchCategory').value = 'other';
+            document.getElementById('batchLevel').value = '2';
+            document.getElementById('batchImportModal').classList.add('show');
+        }
+
+        async function batchImportSensitive() {
+            const wordsText = document.getElementById('batchWords').value.trim();
+            const category = document.getElementById('batchCategory').value;
+            const level = parseInt(document.getElementById('batchLevel').value);
+            if (!wordsText) { showToast('请输入敏感词', 'error'); return; }
+            const words = wordsText.split(/[\\n,，]/).map(w => w.trim()).filter(w => w.length > 0).map(word => ({ word, category, level }));
+            if (words.length === 0) { showToast('没有有效的敏感词', 'error'); return; }
+            const data = await apiRequest('/api/admin/sensitive-words/batch', { method: 'POST', body: JSON.stringify({ words }) });
+            if (data && data.code === 0) {
+                showToast('成功添加 ' + data.data.successCount + ' 个，跳过 ' + data.data.failCount + ' 个', 'success');
+                closeModal('batchImportModal');
+                loadSensitiveWords();
+            }
+        }
+
+        async function loadAIConfig() {
+            const data = await apiRequest('/api/admin/ai-config');
+            if (!data || data.code !== 0) return;
+            const config = data.data;
+            document.getElementById('aiEnabled').checked = config.enabled;
+            document.getElementById('aiProvider').value = config.provider || 'openai';
+            document.getElementById('aiStrictness').value = config.strictness || 'medium';
+            document.getElementById('autoReject').checked = config.autoReject !== false;
+            const dims = config.reviewDimensions || {};
+            document.getElementById('dimPolitics').checked = dims.politics !== false;
+            document.getElementById('dimPorn').checked = dims.porn !== false;
+            document.getElementById('dimViolence').checked = dims.violence !== false;
+            document.getElementById('dimAd').checked = dims.ad !== false;
+            document.getElementById('dimAbuse').checked = dims.abuse !== false;
+            if (config.openai) {
+                document.getElementById('openaiBaseUrl').value = config.openai.baseUrl || '';
+                document.getElementById('openaiApiKey').value = config.openai.apiKey || '';
+                document.getElementById('openaiModel').value = config.openai.model || '';
+            }
+            if (config.xunfei) {
+                document.getElementById('xunfeiApiKey').value = config.xunfei.apiKey || '';
+                document.getElementById('xunfeiModel').value = config.xunfei.model || '';
+            }
+        }
+
+        async function saveAIConfig() {
+            const config = {
+                enabled: document.getElementById('aiEnabled').checked,
+                provider: document.getElementById('aiProvider').value,
+                strictness: document.getElementById('aiStrictness').value,
+                autoReject: document.getElementById('autoReject').checked,
+                reviewDimensions: {
+                    politics: document.getElementById('dimPolitics').checked,
+                    porn: document.getElementById('dimPorn').checked,
+                    violence: document.getElementById('dimViolence').checked,
+                    ad: document.getElementById('dimAd').checked,
+                    abuse: document.getElementById('dimAbuse').checked
+                },
+                openai: {
+                    baseUrl: document.getElementById('openaiBaseUrl').value.trim(),
+                    apiKey: document.getElementById('openaiApiKey').value.trim(),
+                    model: document.getElementById('openaiModel').value.trim()
+                },
+                xunfei: {
+                    apiKey: document.getElementById('xunfeiApiKey').value.trim(),
+                    model: document.getElementById('xunfeiModel').value.trim()
+                }
+            };
+            const data = await apiRequest('/api/admin/ai-config', { method: 'PUT', body: JSON.stringify(config) });
+            if (data && data.code === 0) { showToast('配置保存成功', 'success'); }
+        }
+
+        async function testAIConfig() {
+            const config = {
+                enabled: true,
+                provider: document.getElementById('aiProvider').value,
+                strictness: document.getElementById('aiStrictness').value,
+                autoReject: document.getElementById('autoReject').checked,
+                reviewDimensions: {
+                    politics: document.getElementById('dimPolitics').checked,
+                    porn: document.getElementById('dimPorn').checked,
+                    violence: document.getElementById('dimViolence').checked,
+                    ad: document.getElementById('dimAd').checked,
+                    abuse: document.getElementById('dimAbuse').checked
+                },
+                openai: {
+                    baseUrl: document.getElementById('openaiBaseUrl').value.trim(),
+                    apiKey: document.getElementById('openaiApiKey').value.trim(),
+                    model: document.getElementById('openaiModel').value.trim()
+                },
+                xunfei: {
+                    apiKey: document.getElementById('xunfeiApiKey').value.trim(),
+                    model: document.getElementById('xunfeiModel').value.trim()
+                }
+            };
+            showToast('测试中...', 'success');
+            const data = await apiRequest('/api/admin/ai-config/test', { method: 'POST', body: JSON.stringify(config) });
+            if (data && data.code === 0) {
+                if (data.data.success) {
+                    showToast('测试成功！AI 接口连接正常', 'success');
+                } else {
+                    showToast('测试失败：' + data.data.message, 'error');
+                }
+            }
+        }
+
+        async function loadSettings() {
+            const data = await apiRequest('/api/admin/settings');
+            if (!data || data.code !== 0) return;
+            const settings = data.data;
+            document.getElementById('maxContentLength').value = settings.max_content_length || 500;
+            document.getElementById('needManualReview').checked = settings.need_manual_review || false;
+        }
+
+        async function saveSettings() {
+            const settings = {
+                max_content_length: parseInt(document.getElementById('maxContentLength').value) || 500,
+                need_manual_review: document.getElementById('needManualReview').checked
+            };
+            const data = await apiRequest('/api/admin/settings', { method: 'PUT', body: JSON.stringify(settings) });
+            if (data && data.code === 0) { showToast('设置保存成功', 'success'); }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+        }
+
+        function showToast(message, type) {
+            type = type || 'success';
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast ' + type;
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 2500);
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('show');
+        }
+
+        function renderPagination(containerId, pageData, currentPage, onChange) {
+            const container = document.getElementById(containerId);
+            const totalPages = pageData.totalPages;
+            if (totalPages <= 1) { container.innerHTML = ''; return; }
+            let html = '';
+            html += '<button ' + (currentPage === 1 ? 'disabled' : '') + ' onclick="(function(page){ ' + onChange.toString().replace(/onChange/g, '') + ' })(' + (currentPage - 1) + ')">上一页</button>';
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    html += '<button class="' + (i === currentPage ? 'active' : '') + '" onclick="(function(page){ ' + onChange.toString().replace(/onChange/g, '') + ' })(' + i + ')">' + i + '</button>';
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    html += '<span style="padding:8px;">...</span>';
+                }
+            }
+            html += '<button ' + (currentPage === totalPages ? 'disabled' : '') + ' onclick="(function(page){ ' + onChange.toString().replace(/onChange/g, '') + ' })(' + (currentPage + 1) + ')">下一页</button>';
+            container.innerHTML = html;
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) this.classList.remove('show');
+            });
+        });
+    </script>
+</body>
+</html>'''
+
+with open('src/pages/admin.html', 'w', encoding='utf-8') as f:
+    f.write(html)
+
+print('admin.html generated, size:', len(html))
