@@ -536,6 +536,113 @@ export const INDEX_HTML = `<!DOCTYPE html>
       box-shadow: 0 4px 15px rgba(230, 57, 70, 0.4);
     }
 
+    /* 图片上传 */
+    .image-upload-area {
+      border: 2px dashed rgba(93, 78, 55, 0.3);
+      border-radius: 12px;
+      padding: 30px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(93, 78, 55, 0.02);
+    }
+    .image-upload-area:hover {
+      border-color: #E63946;
+      background: rgba(230, 57, 70, 0.05);
+    }
+    .upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: 8px;
+    }
+    .upload-text {
+      font-weight: 500;
+      color: #3D2E1F;
+      margin-bottom: 4px;
+    }
+    .upload-hint {
+      font-size: 0.8rem;
+      color: #8B7355;
+    }
+    .image-preview {
+      position: relative;
+      margin-top: 12px;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .image-preview img {
+      width: 100%;
+      max-height: 200px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .remove-image-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      border: none;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    /* 上传进度条 */
+    .upload-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 8px 12px;
+    }
+    .progress-bar {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #E63946, #F4A261);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .progress-text {
+      color: white;
+      font-size: 0.75rem;
+      text-align: center;
+    }
+    /* 拖拽高亮 */
+    .image-upload-area.dragover {
+      border-color: #E63946;
+      background: rgba(230, 57, 70, 0.1);
+      transform: scale(1.02);
+    }
+    /* 心愿卡片图片 */
+    .sticky-note .note-image {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 10px;
+      cursor: pointer;
+    }
+    /* 详情页图片 */
+    .detail-image {
+      width: 100%;
+      max-height: 300px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      cursor: pointer;
+    }
+
     /* 详情弹窗内容 */
     .detail-type {
       display: inline-block;
@@ -875,6 +982,25 @@ export const INDEX_HTML = `<!DOCTYPE html>
           <label class="form-label">昵称（可选）</label>
           <input type="text" class="form-input" id="postAuthor" placeholder="匿名发布" maxlength="20">
         </div>
+        <div class="form-group">
+          <label class="form-label">图片（可选）</label>
+          <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('imageInput').click()">
+            <div class="upload-icon">📷</div>
+            <div class="upload-text">点击或拖拽上传图片</div>
+            <div class="upload-hint">支持 JPG、PNG、GIF，最大 5MB</div>
+          </div>
+          <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+          <div class="image-preview" id="imagePreview" style="display: none;">
+            <img id="previewImg" src="" alt="预览">
+            <button class="remove-image-btn" onclick="removeImage()">✕</button>
+            <div class="upload-progress" id="uploadProgress" style="display: none;">
+              <div class="progress-bar" id="progressBar">
+                <div class="progress-bar-fill" id="progressBarFill"></div>
+              </div>
+              <div class="progress-text" id="progressText">0%</div>
+            </div>
+          </div>
+        </div>
         <button class="submit-btn" onclick="submitPost()">发布</button>
       </div>
     </div>
@@ -906,6 +1032,8 @@ export const INDEX_HTML = `<!DOCTYPE html>
     let loading = false;
     let hasMore = true;
     let likedPosts = new Set();
+    let selectedImage = null;
+    let uploadedImageId = null;
 
     // 类型名称映射
     const typeNames = {
@@ -974,6 +1102,133 @@ export const INDEX_HTML = `<!DOCTYPE html>
       // 类型变化时更新分类选项
       document.getElementById('postType').addEventListener('change', () => {
         renderCategoryOptions();
+      });
+
+      // 图片拖拽上传
+      const uploadArea = document.getElementById('imageUploadArea');
+      if (uploadArea) {
+        uploadArea.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+          uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+          e.preventDefault();
+          uploadArea.classList.remove('dragover');
+          const file = e.dataTransfer.files[0];
+          if (file) {
+            handleFile(file);
+          }
+        });
+      }
+    }
+
+    // 图片选择处理
+    function handleImageSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      handleFile(file);
+    }
+
+    // 处理文件
+    function handleFile(file) {
+      // 验证文件类型
+      if (!file.type.startsWith('image/')) {
+        showToast('请选择图片文件', 'error');
+        return;
+      }
+      
+      // 验证文件大小（5MB）
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('图片大小不能超过 5MB', 'error');
+        return;
+      }
+      
+      selectedImage = file;
+      uploadedImageId = null;
+      
+      // 显示预览
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('previewImg').src = e.target.result;
+        document.getElementById('imagePreview').style.display = 'block';
+        document.getElementById('imageUploadArea').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // 移除图片
+    function removeImage() {
+      selectedImage = null;
+      uploadedImageId = null;
+      document.getElementById('imagePreview').style.display = 'none';
+      document.getElementById('imageUploadArea').style.display = 'block';
+      document.getElementById('imageInput').value = '';
+    }
+
+    // 上传图片
+    function uploadImage(file) {
+      return new Promise((resolve, reject) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const xhr = new XMLHttpRequest();
+
+        // 显示进度条
+        const progressEl = document.getElementById('uploadProgress');
+        const progressFill = document.getElementById('progressBarFill');
+        const progressText = document.getElementById('progressText');
+
+        if (progressEl) progressEl.style.display = 'block';
+        if (progressFill) progressFill.style.width = '0%';
+        if (progressText) progressText.textContent = '0%';
+
+        // 上传进度
+        xhr.upload.onprogress = function(e) {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            if (progressFill) progressFill.style.width = percent + '%';
+            if (progressText) progressText.textContent = percent + '%';
+          }
+        };
+
+        // 请求完成
+        xhr.onload = function() {
+          // 显示处理中
+          if (progressEl) progressEl.style.display = 'none';
+
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const data = JSON.parse(xhr.responseText);
+              if (data.success) {
+                resolve(data.data);
+              } else {
+                reject(new Error(data.message || '上传失败'));
+              }
+            } catch (e) {
+              reject(new Error('服务器响应格式错误'));
+            }
+          } else {
+            reject(new Error('上传失败，状态码：' + xhr.status));
+          }
+        };
+
+        // 请求错误
+        xhr.onerror = function() {
+          if (progressEl) progressEl.style.display = 'none';
+          reject(new Error('网络错误，请检查网络连接'));
+        };
+
+        // 请求超时
+        xhr.ontimeout = function() {
+          if (progressEl) progressEl.style.display = 'none';
+          reject(new Error('上传超时，请重试'));
+        };
+
+        xhr.open('POST', '/api/images/upload', true);
+        xhr.send(formData);
       });
     }
 
@@ -1110,6 +1365,7 @@ export const INDEX_HTML = `<!DOCTYPE html>
           <div class="sticky-note type-\${post.post_type}" onclick="openDetail(\${post.id})">
             <div class="fold-corner"></div>
             <div class="sticky-type">\${typeIcon} \${typeName}</div>
+            \${post.image_url ? \`<img src="\${post.image_url}" alt="图片" class="note-image">\` : ''}
             <div class="sticky-content">\${escapeHtml(post.content)}</div>
             <div class="sticky-footer">
               <div class="sticky-author">
@@ -1138,6 +1394,17 @@ export const INDEX_HTML = `<!DOCTYPE html>
       document.getElementById('postContent').value = '';
       document.getElementById('postAuthor').value = '';
       document.getElementById('charCount').textContent = '0';
+      selectedImage = null;
+      uploadedImageId = null;
+      if (document.getElementById('imagePreview')) {
+        document.getElementById('imagePreview').style.display = 'none';
+      }
+      if (document.getElementById('imageUploadArea')) {
+        document.getElementById('imageUploadArea').style.display = 'block';
+      }
+      if (document.getElementById('imageInput')) {
+        document.getElementById('imageInput').value = '';
+      }
       renderCategoryOptions();
     }
 
@@ -1159,6 +1426,21 @@ export const INDEX_HTML = `<!DOCTYPE html>
       }
 
       try {
+        // 如果有选中的图片，先上传
+        let imageId = null;
+        if (selectedImage) {
+          try {
+            showToast('正在上传图片...', 'info');
+            const uploadResult = await uploadImage(selectedImage);
+            imageId = uploadResult.id;
+          } catch (e) {
+            showToast('图片上传失败，请重试', 'error');
+            return;
+          }
+        }
+        
+        // 发布帖子
+        showToast('正在发布...', 'info');
         const res = await fetch('/api/posts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1166,7 +1448,8 @@ export const INDEX_HTML = `<!DOCTYPE html>
             content,
             author: author || null,
             postType,
-            categoryId: categoryId || null
+            categoryId: categoryId || null,
+            imageId: imageId
           })
         });
 
@@ -1223,6 +1506,7 @@ export const INDEX_HTML = `<!DOCTYPE html>
 
       body.innerHTML = \`
         <div class="detail-type">\${typeIcon} \${typeName} · \${post.category_name || ''}</div>
+        \${post.image_url ? \`<img src="\${post.image_url}" alt="图片" class="detail-image">\` : ''}
         <div class="detail-content">\${escapeHtml(post.content)}</div>
         <div class="detail-meta">
           <div class="detail-author">
