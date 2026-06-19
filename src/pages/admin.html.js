@@ -560,6 +560,81 @@ export const ADMIN_HTML = `<!DOCTYPE html>
                         <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
                     </div>
                 </div>
+
+                <!-- 管理员账户设置 -->
+                <div class="card">
+                    <div class="card-header"><h3>管理员账户设置</h3></div>
+                    
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">当前用户名</div>
+                            <div class="config-desc" id="currentUsername">admin</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline" onclick="showChangeUsernameModal()">修改用户名</button>
+                    </div>
+                    
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">登录密码</div>
+                            <div class="config-desc">••••••••</div>
+                        </div>
+                        <button class="btn btn-sm btn-outline" onclick="showChangePasswordModal()">修改密码</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改用户名弹窗 -->
+    <div class="modal-overlay" id="changeUsernameModal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header">
+                <h3>修改用户名</h3>
+                <button class="modal-close" onclick="closeModal('changeUsernameModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>新用户名</label>
+                    <input type="text" id="newUsername" placeholder="请输入新用户名（至少3位）">
+                </div>
+                <div class="form-group">
+                    <label>当前密码</label>
+                    <input type="password" id="usernameConfirmPassword" placeholder="请输入当前密码确认">
+                </div>
+                <div class="error-message" id="usernameError"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('changeUsernameModal')">取消</button>
+                <button class="btn btn-primary" onclick="changeUsername()">确认修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修改密码弹窗 -->
+    <div class="modal-overlay" id="changePasswordModal">
+        <div class="modal" style="max-width:400px;">
+            <div class="modal-header">
+                <h3>修改密码</h3>
+                <button class="modal-close" onclick="closeModal('changePasswordModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>旧密码</label>
+                    <input type="password" id="oldPassword" placeholder="请输入旧密码">
+                </div>
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" id="newPassword" placeholder="请输入新密码（至少6位）">
+                </div>
+                <div class="form-group">
+                    <label>确认新密码</label>
+                    <input type="password" id="confirmPassword" placeholder="请再次输入新密码">
+                </div>
+                <div class="error-message" id="passwordError"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('changePasswordModal')">取消</button>
+                <button class="btn btn-primary" onclick="changePassword()">确认修改</button>
             </div>
         </div>
     </div>
@@ -1267,6 +1342,14 @@ export const ADMIN_HTML = `<!DOCTYPE html>
             document.getElementById('commentNeedReview').checked = settings.comment_need_review !== false;
             document.getElementById('commentMaxLength').value = settings.comment_max_length || 200;
             document.getElementById('commentRateLimit').value = settings.comment_rate_limit || 10;
+            
+            // 加载管理员信息
+            const profileData = await apiRequest('/api/admin/profile');
+            if (profileData && profileData.code === 0) {
+                document.getElementById('currentUsername').textContent = profileData.data.username;
+                document.getElementById('userName').textContent = profileData.data.username;
+                document.getElementById('userAvatar').textContent = profileData.data.username.charAt(0).toUpperCase();
+            }
         }
 
         async function saveSettings() {
@@ -1280,6 +1363,102 @@ export const ADMIN_HTML = `<!DOCTYPE html>
             };
             const data = await apiRequest('/api/admin/settings', { method: 'PUT', body: JSON.stringify(settings) });
             if (data && data.code === 0) { showToast('设置保存成功', 'success'); }
+        }
+
+        // 修改用户名相关函数
+        function showChangeUsernameModal() {
+            document.getElementById('newUsername').value = '';
+            document.getElementById('usernameConfirmPassword').value = '';
+            document.getElementById('usernameError').textContent = '';
+            document.getElementById('changeUsernameModal').classList.add('show');
+        }
+
+        function closeChangeUsernameModal() {
+            document.getElementById('changeUsernameModal').classList.remove('show');
+        }
+
+        async function changeUsername() {
+            const newUsername = document.getElementById('newUsername').value.trim();
+            const password = document.getElementById('usernameConfirmPassword').value;
+            const errorEl = document.getElementById('usernameError');
+
+            if (!newUsername) {
+                errorEl.textContent = '请输入新用户名';
+                return;
+            }
+            if (newUsername.length < 3) {
+                errorEl.textContent = '用户名长度不能少于3位';
+                return;
+            }
+            if (!password) {
+                errorEl.textContent = '请输入当前密码';
+                return;
+            }
+
+            const data = await apiRequest('/api/admin/profile/username', {
+                method: 'PUT',
+                body: JSON.stringify({ newUsername, password })
+            });
+
+            if (data && data.code === 0) {
+                showToast('用户名修改成功', 'success');
+                closeModal('changeUsernameModal');
+                // 更新显示的用户名
+                document.getElementById('currentUsername').textContent = newUsername;
+                document.getElementById('userName').textContent = newUsername;
+                document.getElementById('userAvatar').textContent = newUsername.charAt(0).toUpperCase();
+            } else {
+                errorEl.textContent = data?.message || '修改失败';
+            }
+        }
+
+        // 修改密码相关函数
+        function showChangePasswordModal() {
+            document.getElementById('oldPassword').value = '';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmPassword').value = '';
+            document.getElementById('passwordError').textContent = '';
+            document.getElementById('changePasswordModal').classList.add('show');
+        }
+
+        function closeChangePasswordModal() {
+            document.getElementById('changePasswordModal').classList.remove('show');
+        }
+
+        async function changePassword() {
+            const oldPassword = document.getElementById('oldPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const errorEl = document.getElementById('passwordError');
+
+            if (!oldPassword) {
+                errorEl.textContent = '请输入旧密码';
+                return;
+            }
+            if (!newPassword) {
+                errorEl.textContent = '请输入新密码';
+                return;
+            }
+            if (newPassword.length < 6) {
+                errorEl.textContent = '新密码长度不能少于6位';
+                return;
+            }
+            if (newPassword !== confirmPassword) {
+                errorEl.textContent = '两次输入的新密码不一致';
+                return;
+            }
+
+            const data = await apiRequest('/api/admin/profile/password', {
+                method: 'PUT',
+                body: JSON.stringify({ oldPassword, newPassword })
+            });
+
+            if (data && data.code === 0) {
+                showToast('密码修改成功', 'success');
+                closeModal('changePasswordModal');
+            } else {
+                errorEl.textContent = data?.message || '修改失败';
+            }
         }
 
         function escapeHtml(text) {
