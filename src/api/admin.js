@@ -36,7 +36,8 @@ import {
   getComments,
   getCommentById,
   updateCommentStatus,
-  deleteComment
+  deleteComment,
+  initDatabase
 } from '../db/database.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { testAIConfig } from '../utils/ai-review.js';
@@ -89,27 +90,37 @@ router.post('/login', async (request, env) => {
   }
 });
 
-// 初始化管理员（首次部署时使用）
+// 一键初始化（首次部署时使用，自动创建表结构+初始数据+管理员账号）
 router.get('/init', async (request, env) => {
   try {
+    // 1. 先初始化数据库表结构和初始数据
+    const dbInitResult = await initDatabase(env.DB);
+    
+    // 2. 检查管理员是否已存在
     const adminExists = await hasAdmin(env.DB);
     
     if (adminExists) {
-      return errorResponse('管理员已初始化，请勿重复操作', 400);
+      return successResponse({
+        databaseInitialized: dbInitResult.alreadyInitialized ? '已初始化' : '初始化成功',
+        admin: '已存在'
+      }, '系统已初始化，请勿重复操作');
     }
 
+    // 3. 创建管理员账号
     const initPassword = env.ADMIN_INIT_PASSWORD || 'admin123';
     const passwordHash = await hashPassword(initPassword);
     
     await createAdmin(env.DB, 'admin', passwordHash, 'super_admin');
 
     return successResponse({
+      databaseInitialized: dbInitResult.alreadyInitialized ? '已初始化' : '初始化成功',
+      adminCreated: true,
       username: 'admin',
       password: initPassword
-    }, '管理员初始化成功，请及时修改密码');
+    }, '系统初始化成功！请使用管理员账号登录后台');
   } catch (e) {
-    console.error('初始化管理员失败:', e);
-    return errorResponse('初始化失败');
+    console.error('初始化失败:', e);
+    return errorResponse('初始化失败: ' + e.message);
   }
 });
 
