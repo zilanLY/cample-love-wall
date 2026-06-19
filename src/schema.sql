@@ -34,6 +34,11 @@ CREATE TABLE IF NOT EXISTS categories (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 分类唯一索引，防止重复分类
+CREATE UNIQUE INDEX IF NOT EXISTS idx_categories_name_type ON categories(name, post_type);
+CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(post_type);
+CREATE INDEX IF NOT EXISTS idx_categories_active ON categories(is_active);
+
 -- 敏感词表
 CREATE TABLE IF NOT EXISTS sensitive_words (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
