@@ -769,6 +769,34 @@ export async function hasAdmin(db) {
   return result.count > 0;
 }
 
+// 根据ID获取管理员
+export async function getAdminById(db, id) {
+  return await db.prepare('SELECT * FROM admins WHERE id = ?').bind(id).first();
+}
+
+// 更新管理员密码
+export async function updateAdminPassword(db, id, newPasswordHash) {
+  const result = await db.prepare(`
+    UPDATE admins SET password_hash = ? WHERE id = ?
+  `).bind(newPasswordHash, id).run();
+  return result.meta.changes > 0;
+}
+
+// 更新管理员用户名
+export async function updateAdminUsername(db, id, newUsername) {
+  try {
+    const result = await db.prepare(`
+      UPDATE admins SET username = ? WHERE id = ?
+    `).bind(newUsername, id).run();
+    return { success: result.meta.changes > 0 };
+  } catch (e) {
+    if (e.message.includes('UNIQUE') || e.message.includes('unique')) {
+      return { success: false, message: '用户名已存在' };
+    }
+    throw e;
+  }
+}
+
 // 统计相关
 
 // 获取统计数据

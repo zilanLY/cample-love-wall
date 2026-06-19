@@ -37,7 +37,10 @@ import {
   getCommentById,
   updateCommentStatus,
   deleteComment,
-  initDatabase
+  initDatabase,
+  getAdminById,
+  updateAdminPassword,
+  updateAdminUsername
 } from '../db/database.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { testAIConfig } from '../utils/ai-review.js';
@@ -624,6 +627,107 @@ router.get('/stats', async (request, env) => {
   } catch (e) {
     console.error('获取统计数据失败:', e);
     return errorResponse('获取统计数据失败');
+  }
+});
+
+// 管理员账户管理
+
+// 获取当前管理员信息
+router.get('/profile', async (request, env) => {
+  try {
+    const admin = await getAdminById(env.DB, request.admin.id);
+    if (!admin) {
+      return errorResponse('管理员不存在', 404);
+    }
+    return successResponse({
+      id: admin.id,
+      username: admin.username,
+      role: admin.role,
+      lastLoginAt: admin.last_login_at,
+      createdAt: admin.created_at
+    });
+  } catch (e) {
+    console.error('获取管理员信息失败:', e);
+    return errorResponse('获取信息失败');
+  }
+});
+
+// 修改管理员密码
+router.put('/profile/password', async (request, env) => {
+  try {
+    const body = await parseBody(request);
+    const { oldPassword, newPassword } = body;
+
+    if (!oldPassword || !newPassword) {
+      return errorResponse('旧密码和新密码不能为空');
+    }
+
+    if (newPassword.length < 6) {
+      return errorResponse('新密码长度不能少于6位');
+    }
+
+    // 验证旧密码
+    const admin = await getAdminById(env.DB, request.admin.id);
+    if (!admin) {
+      return errorResponse('管理员不存在', 404);
+    }
+
+    const oldPasswordHash = await hashPassword(oldPassword);
+    if (oldPasswordHash !== admin.password_hash) {
+      return errorResponse('旧密码错误');
+    }
+
+    // 更新密码
+    const newPasswordHash = await hashPassword(newPassword);
+    const success = await updateAdminPassword(env.DB, request.admin.id, newPasswordHash);
+
+    if (success) {
+      return successResponse(null, '密码修改成功');
+    } else {
+      return errorResponse('密码修改失败');
+    }
+  } catch (e) {
+    console.error('修改密码失败:', e);
+    return errorResponse('修改失败: ' + e.message);
+  }
+});
+
+// 修改管理员用户名
+router.put('/profile/username', async (request, env) => {
+  try {
+    const body = await parseBody(request);
+    const { newUsername, password } = body;
+
+    if (!newUsername || !password) {
+      return errorResponse('新用户名和密码不能为空');
+    }
+
+    if (newUsername.length < 3) {
+      return errorResponse('用户名长度不能少于3位');
+    }
+
+    // 验证密码
+    const admin = await getAdminById(env.DB, request.admin.id);
+    if (!admin) {
+      return errorResponse('管理员不存在', 404);
+    }
+
+    const passwordHash = await hashPassword(password);
+    if (passwordHash !== admin.password_hash) {
+      return errorResponse('密码错误');
+    }
+
+    // 更新用户名
+    const result = await updateAdminUsername(env.DB, request.admin.id, newUsername.trim());
+
+    if (result.success) {
+      return successResponse({ username: newUsername }, '用户名修改成功');
+    } else {
+      return errorResponse(result.message || '用户名修改失败');
+    }
+  } catch (e) {
+    console.error('修改用户名失败:', e);
+    return errorResponse('修改失败: ' + e.message);
   }
 });
 
