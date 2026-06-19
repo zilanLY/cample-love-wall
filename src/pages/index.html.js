@@ -346,11 +346,17 @@ export const INDEX_HTML = `<!DOCTYPE html>
 
     /* 加载状态 */
     .loading {
+      column-span: all;
       text-align: center;
       padding: 60px 20px;
       font-family: 'Caveat', cursive;
       font-size: 1.5rem;
       color: #6B5B45;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     .loading-spinner {
@@ -369,8 +375,10 @@ export const INDEX_HTML = `<!DOCTYPE html>
 
     /* 空状态 */
     .empty-state {
+      column-span: all;
       text-align: center;
       padding: 60px 20px;
+      width: 100%;
     }
 
     .empty-state .empty-icon {
@@ -787,132 +795,6 @@ export const INDEX_HTML = `<!DOCTYPE html>
         transform: translateY(0);
       }
     }
-    /* 图片上传 */
-    .image-upload-area {
-      border: 2px dashed rgba(93, 78, 55, 0.3);
-      border-radius: 12px;
-      padding: 30px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: rgba(93, 78, 55, 0.02);
-    }
-    .image-upload-area:hover {
-      border-color: #E63946;
-      background: rgba(230, 57, 70, 0.05);
-    }
-    .upload-icon {
-      font-size: 2.5rem;
-      margin-bottom: 8px;
-    }
-    .upload-text {
-      font-weight: 500;
-      color: #3D2E1F;
-      margin-bottom: 4px;
-    }
-    .upload-hint {
-      font-size: 0.8rem;
-      color: #8B7355;
-    }
-    .image-preview {
-      position: relative;
-      margin-top: 12px;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .image-preview img {
-      width: 100%;
-      max-height: 200px;
-      object-fit: cover;
-      border-radius: 8px;
-    }
-    .remove-image-btn {
-      position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 28px;
-      height: 28px;
-      border: none;
-      background: rgba(0, 0, 0, 0.6);
-      color: white;
-      border-radius: 50%;
-      cursor: pointer;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    /* 上传进度条 */
-    .upload-progress {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 8px 12px;
-    }
-    .progress-bar {
-      height: 6px;
-      background: rgba(255, 255, 255, 0.3);
-      border-radius: 3px;
-      overflow: hidden;
-      margin-bottom: 4px;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, #E63946, #F4A261);
-      width: 0%;
-      transition: width 0.3s ease;
-    }
-    .progress-text {
-      color: white;
-      font-size: 0.75rem;
-      text-align: center;
-    }
-    /* 拖拽高亮 */
-    .image-upload-area.dragover {
-      border-color: #E63946;
-      background: rgba(230, 57, 70, 0.1);
-      transform: scale(1.02);
-    }
-    /* 详情页图片容器 */
-    .detail-images {
-      margin-bottom: 16px;
-    }
-    .detail-image-item {
-      margin-bottom: 12px;
-    }
-    .detail-image-item img {
-      width: 100%;
-      max-height: 400px;
-      object-fit: contain;
-      border-radius: 12px;
-      cursor: pointer;
-    }
-    /* 心愿卡片图片包装器 */
-    .note-image-wrapper {
-      margin-bottom: 10px;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    /* 心愿卡片图片 */
-    .sticky-note .note-image {
-      width: 100%;
-      height: 120px;
-      object-fit: cover;
-      border-radius: 8px;
-      margin-bottom: 10px;
-      cursor: pointer;
-    }
-    /* 详情页图片 */
-    .detail-image {
-      width: 100%;
-      max-height: 300px;
-      object-fit: cover;
-      border-radius: 12px;
-      margin-bottom: 16px;
-      cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -943,7 +825,7 @@ export const INDEX_HTML = `<!DOCTYPE html>
 
   <!-- 分类筛选 -->
   <div class="category-filter" id="categoryFilter">
-    <div class="category-chip active" data-id="" onclick="selectCategory('', this)">全部分类</div>
+    <div class="category-chip active" data-id="">全部分类</div>
   </div>
 
   <!-- 发布按钮 -->
@@ -993,25 +875,6 @@ export const INDEX_HTML = `<!DOCTYPE html>
           <label class="form-label">昵称（可选）</label>
           <input type="text" class="form-input" id="postAuthor" placeholder="匿名发布" maxlength="20">
         </div>
-        <div class="form-group">
-          <label class="form-label">图片（可选）</label>
-          <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('imageInput').click()">
-            <div class="upload-icon">📷</div>
-            <div class="upload-text">点击或拖拽上传图片</div>
-            <div class="upload-hint">支持 JPG、PNG、GIF，最大 5MB</div>
-          </div>
-          <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
-          <div class="image-preview" id="imagePreview" style="display: none;">
-            <img id="previewImg" src="" alt="预览">
-            <button class="remove-image-btn" onclick="removeImage()">✕</button>
-            <div class="upload-progress" id="uploadProgress" style="display: none;">
-              <div class="progress-bar" id="progressBar">
-                <div class="progress-bar-fill" id="progressBarFill"></div>
-              </div>
-              <div class="progress-text" id="progressText">0%</div>
-            </div>
-          </div>
-        </div>
         <button class="submit-btn" onclick="submitPost()">发布</button>
       </div>
     </div>
@@ -1036,15 +899,13 @@ export const INDEX_HTML = `<!DOCTYPE html>
   <script>
     // 全局状态
     let currentType = '';
-    
-    
+    let currentCategory = '';
+    let categories = [];
     let posts = [];
     let currentPage = 1;
     let loading = false;
     let hasMore = true;
     let likedPosts = new Set();
-    let selectedImage = null;
-    let uploadedImageId = null;
 
     // 类型名称映射
     const typeNames = {
@@ -1061,76 +922,13 @@ export const INDEX_HTML = `<!DOCTYPE html>
       rant: '💭'
     };
 
-    // 分类相关
-    let categories = [];
-    let currentCategory = '';
-
-    // 加载分类列表
-    async function loadCategories() {
-      try {
-        let url = '/api/categories';
-        if (currentType) url += \`?type=\${currentType}\`;
-        
-        const res = await fetch(url);
-        const data = await res.json();
-        
-        if (data.success && data.data) {
-          categories = data.data;
-          renderCategoryFilter();
-          renderCategoryOptions();
-        }
-      } catch (e) {
-        console.error('加载分类失败:', e);
-      }
-    }
-
-    // 渲染分类筛选标签
-    function renderCategoryFilter() {
-      const filter = document.getElementById('categoryFilter');
-      if (!filter) return;
-
-      let html = \`<div class="category-chip \${currentCategory === '' ? 'active' : ''}" data-id="" onclick="selectCategory('', this)">全部分类</div>\`;
-      
-      categories.forEach(cat => {
-        html += \`<div class="category-chip \${currentCategory == cat.id ? 'active' : ''}" data-id="\${cat.id}" onclick="selectCategory(\${cat.id}, this)">\${cat.icon || ''} \${cat.name}</div>\`;
-      });
-
-      filter.innerHTML = html;
-    }
-
-    // 选择分类
-    function selectCategory(id, el) {
-      currentCategory = id;
-      currentPage = 1;
-      posts = [];
-      hasMore = true;
-      loadPosts();
-    }
-
-    // 渲染发布表单的分类下拉选项
-    function renderCategoryOptions() {
-      const select = document.getElementById('categoryId');
-      if (!select) return;
-
-      let html = '<option value="">请选择分类</option>';
-      categories.forEach(cat => {
-        html += \`<option value="\${cat.id}">\${cat.icon || ''} \${cat.name}</option>\`;
-      });
-      select.innerHTML = html;
-    }
-
     // 初始化
-    function init() {
+    document.addEventListener('DOMContentLoaded', () => {
       loadCategories();
       loadPosts();
       setupEventListeners();
-    }
-    
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', init);
-    } else {
-      init();
-    }
+    });
+
     // 设置事件监听
     function setupEventListeners() {
       // 类型标签点击
@@ -1139,12 +937,11 @@ export const INDEX_HTML = `<!DOCTYPE html>
           document.querySelectorAll('.type-tab').forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
           currentType = tab.dataset.type;
-          currentCategory = '';
           currentPage = 1;
           posts = [];
           hasMore = true;
-          loadCategories();
           loadPosts();
+          filterCategoriesByType(currentType);
         });
       });
 
@@ -1174,79 +971,76 @@ export const INDEX_HTML = `<!DOCTYPE html>
         }
       });
 
-      // 拖拽上传
-      const uploadArea = document.getElementById('imageUploadArea');
-      if (uploadArea) {
-        // 阻止默认拖拽行为
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-          uploadArea.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-          e.preventDefault();
-          e.stopPropagation();
-        }
-
-        // 拖拽进入和悬停
-        ['dragenter', 'dragover'].forEach(eventName => {
-          uploadArea.addEventListener(eventName, highlight, false);
-        });
-
-        // 拖拽离开和放下
-        ['dragleave', 'drop'].forEach(eventName => {
-          uploadArea.addEventListener(eventName, unhighlight, false);
-        });
-
-        function highlight() {
-          uploadArea.classList.add('dragover');
-        }
-
-        function unhighlight() {
-          uploadArea.classList.remove('dragover');
-        }
-
-        // 处理放下的文件
-        uploadArea.addEventListener('drop', handleDrop, false);
-
-        function handleDrop(e) {
-          const dt = e.dataTransfer;
-          const files = dt.files;
-          if (files.length > 0) {
-            handleFile(files[0]);
-          }
-        }
-      }
-
+      // 类型变化时更新分类选项
+      document.getElementById('postType').addEventListener('change', () => {
+        renderCategoryOptions();
+      });
     }
 
-    // 处理文件（用于拖拽和点击上传）
-    function handleFile(file) {
-      // 验证文件类型
-      if (!file.type.startsWith('image/')) {
-        showToast('请选择图片文件', 'error');
-        return;
+    // 加载分类
+    async function loadCategories() {
+      try {
+        const res = await fetch('/api/categories');
+        const data = await res.json();
+        
+        if (data.success) {
+          categories = data.data;
+          renderCategoryFilter();
+          renderCategoryOptions();
+        }
+      } catch (e) {
+        console.error('加载分类失败:', e);
       }
-
-      // 验证文件大小（5MB）
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('图片大小不能超过5MB', 'error');
-        return;
-      }
-
-      selectedImage = file;
-      uploadedImageId = null;
-
-      // 显示预览
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        document.getElementById('previewImg').src = e.target.result;
-        document.getElementById('imagePreview').style.display = 'block';
-        document.getElementById('imageUploadArea').style.display = 'none';
-      };
-      reader.readAsDataURL(file);
     }
 
-        // 加载内容列表
+    // 渲染分类筛选
+    function renderCategoryFilter() {
+      const container = document.getElementById('categoryFilter');
+      const filteredCategories = currentType 
+        ? categories.filter(c => c.post_type === currentType)
+        : categories;
+      
+      let html = '<div class="category-chip active" data-id="" onclick="selectCategory(\\'\\', this)">全部分类</div>';
+      
+      filteredCategories.forEach(cat => {
+        html += \`<div class="category-chip" data-id="\${cat.id}" onclick="selectCategory(\${cat.id}, this)">\${cat.icon || '📌'} \${cat.name}</div>\`;
+      });
+      
+      container.innerHTML = html;
+    }
+
+    // 按类型筛选分类
+    function filterCategoriesByType(type) {
+      renderCategoryFilter();
+      renderCategoryOptions();
+    }
+
+    // 渲染分类选项
+    function renderCategoryOptions() {
+      const select = document.getElementById('categoryId');
+      const postType = document.getElementById('postType').value;
+      const filteredCategories = categories.filter(c => c.post_type === postType);
+      
+      let html = '<option value="">请选择分类</option>';
+      filteredCategories.forEach(cat => {
+        html += \`<option value="\${cat.id}">\${cat.icon || '📌'} \${cat.name}</option>\`;
+      });
+      
+      select.innerHTML = html;
+    }
+
+    // 选择分类
+    function selectCategory(id, el) {
+      document.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+      el.classList.add('active');
+      currentCategory = id;
+      currentPage = 1;
+      posts = [];
+      hasMore = true;
+      loadPosts();
+    }
+
+    // 加载内容列表
     async function loadPosts() {
       if (loading) return;
       loading = true;
@@ -1260,7 +1054,7 @@ export const INDEX_HTML = `<!DOCTYPE html>
       try {
         let url = \`/api/posts?page=\${currentPage}&pageSize=20\`;
         if (currentType) url += \`&type=\${currentType}\`;
-        if (currentCategory) url += \`&categoryId=\${currentCategory}\`;
+        if (currentCategory) url += \`&category=\${currentCategory}\`;
 
         const res = await fetch(url);
         const data = await res.json();
@@ -1296,52 +1090,7 @@ export const INDEX_HTML = `<!DOCTYPE html>
       }
     }
 
-    // 图片加载降级逻辑
-    function loadImageWithFallback(imgElement, defaultUrl, telegramUrl) {
-      if (!defaultUrl && !telegramUrl) return;
-      
-      const maxFails = 3;
-      
-      // 从 localStorage 获取失败记录
-      const failKey = 'img_fail_' + btoa(defaultUrl || telegramUrl);
-      const storedFails = parseInt(localStorage.getItem(failKey) || '0');
-      
-      if (storedFails >= maxFails && telegramUrl) {
-        // 已经失败超过3次，直接用 Telegram 存储
-        imgElement.src = telegramUrl;
-        return;
-      }
-      
-      // 先尝试默认存储
-      if (defaultUrl) {
-        imgElement.src = defaultUrl;
-        
-        imgElement.onerror = function() {
-          const currentFails = storedFails + 1;
-          localStorage.setItem(failKey, currentFails.toString());
-          
-          if (currentFails >= maxFails && telegramUrl) {
-            // 切换到 Telegram 存储
-            imgElement.src = telegramUrl;
-            imgElement.onerror = null;
-          }
-        };
-      } else if (telegramUrl) {
-        // 没有默认存储，直接用 Telegram 存储
-        imgElement.src = telegramUrl;
-      }
-    }
-    
-    // 初始化所有图片的降级加载
-    function initImagesWithFallback(container) {
-      const images = container.querySelectorAll('[data-default]');
-      images.forEach(img => {
-        const defaultUrl = img.dataset.default;
-        const telegramUrl = img.dataset.telegram;
-        loadImageWithFallback(img, defaultUrl, telegramUrl);
-      });
-    }
-
+    // 渲染内容列表
     function renderPosts() {
       const wall = document.getElementById('stickyWall');
       
@@ -1358,21 +1107,16 @@ export const INDEX_HTML = `<!DOCTYPE html>
         const liked = likedPosts.has(post.id);
 
         html += \`
-          <div class="sticky-note type-\${post.post_type}" onclick="openDetail('\${post.id}')">
+          <div class="sticky-note type-\${post.post_type}" onclick="openDetail(\${post.id})">
             <div class="fold-corner"></div>
             <div class="sticky-type">\${typeIcon} \${typeName}</div>
-            \${post.primary_image ? \`
-              <div class="note-image-wrapper">
-                <img class="note-image" src="" data-default="\${post.primary_image.primary_url || post.primary_image.default_url}" data-telegram="\${post.primary_image.telegram_url}" alt="帖子图片">
-              </div>
-            \` : ''}
             <div class="sticky-content">\${escapeHtml(post.content)}</div>
             <div class="sticky-footer">
               <div class="sticky-author">
                 <div class="author-avatar">\${authorInitial}</div>
                 <span>\${escapeHtml(post.author || '匿名')}</span>
               </div>
-              <div class="sticky-likes \${liked ? 'liked' : ''}" onclick="event.stopPropagation(); likePost('\${post.id}', this)">
+              <div class="sticky-likes \${liked ? 'liked' : ''}" onclick="event.stopPropagation(); likePost(\${post.id}, this)">
                 <span class="like-icon">\${liked ? '❤️' : '🤍'}</span>
                 <span>\${post.likes || 0}</span>
               </div>
@@ -1382,13 +1126,10 @@ export const INDEX_HTML = `<!DOCTYPE html>
       });
 
       if (hasMore) {
-        html += '<div class="loading" style="grid-column: 1/-1;"><p>加载更多...</p></div>';
+        html += '<div class="loading" style="column-span: all;"><p>加载更多...</p></div>';
       }
 
       wall.innerHTML = html;
-      
-      // 初始化图片加载
-      initImagesWithFallback(wall);
     }
 
     // 打开发布弹窗
@@ -1397,18 +1138,7 @@ export const INDEX_HTML = `<!DOCTYPE html>
       document.getElementById('postContent').value = '';
       document.getElementById('postAuthor').value = '';
       document.getElementById('charCount').textContent = '0';
-      // 重置图片状态
-      selectedImage = null;
-      uploadedImageId = null;
-      if (document.getElementById('imagePreview')) {
-        document.getElementById('imagePreview').style.display = 'none';
-      }
-      if (document.getElementById('imageUploadArea')) {
-        document.getElementById('imageUploadArea').style.display = 'block';
-      }
-      if (document.getElementById('imageInput')) {
-        document.getElementById('imageInput').value = '';
-      }
+      renderCategoryOptions();
     }
 
     // 关闭发布弹窗
@@ -1417,86 +1147,6 @@ export const INDEX_HTML = `<!DOCTYPE html>
     }
 
     // 发布内容
-    // 处理图片选择
-    function handleImageSelect(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-      handleFile(file);
-    }
-
-    // 移除图片
-    function removeImage() {
-      selectedImage = null;
-      uploadedImageId = null;
-      document.getElementById('imagePreview').style.display = 'none';
-      document.getElementById('imageUploadArea').style.display = 'block';
-      document.getElementById('imageInput').value = '';
-    }
-
-    // 上传图片
-    function uploadImage(file) {
-      return new Promise((resolve, reject) => {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const xhr = new XMLHttpRequest();
-
-        // 显示进度条
-        const progressEl = document.getElementById('uploadProgress');
-        const progressFill = document.getElementById('progressBarFill');
-        const progressText = document.getElementById('progressText');
-
-        if (progressEl) progressEl.style.display = 'block';
-        if (progressFill) progressFill.style.width = '0%';
-        if (progressText) progressText.textContent = '0%';
-
-        // 上传进度
-        xhr.upload.onprogress = function(e) {
-          if (e.lengthComputable) {
-            const percent = Math.round((e.loaded / e.total) * 100);
-            if (progressFill) progressFill.style.width = percent + '%';
-            if (progressText) progressText.textContent = percent + '%';
-          }
-        };
-
-        // 请求完成
-        xhr.onload = function() {
-          // 显示处理中
-          if (progressEl) progressEl.style.display = 'none';
-
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const data = JSON.parse(xhr.responseText);
-              if (data.success) {
-                resolve(data.data);
-              } else {
-                reject(new Error(data.message || '上传失败'));
-              }
-            } catch (e) {
-              reject(new Error('服务器响应格式错误'));
-            }
-          } else {
-            reject(new Error('上传失败，状态码：' + xhr.status));
-          }
-        };
-
-        // 请求错误
-        xhr.onerror = function() {
-          if (progressEl) progressEl.style.display = 'none';
-          reject(new Error('网络错误，请检查网络连接'));
-        };
-
-        // 请求超时
-        xhr.ontimeout = function() {
-          if (progressEl) progressEl.style.display = 'none';
-          reject(new Error('上传超时，请重试'));
-        };
-
-        xhr.open('POST', '/api/images/upload', true);
-        xhr.send(formData);
-      });
-    }
-
     async function submitPost() {
       const content = document.getElementById('postContent').value.trim();
       const author = document.getElementById('postAuthor').value.trim();
@@ -1509,21 +1159,6 @@ export const INDEX_HTML = `<!DOCTYPE html>
       }
 
       try {
-        // 如果有选中的图片，先上传
-        let imageId = null;
-        if (selectedImage) {
-          try {
-            showToast('正在上传图片...', 'info');
-            const uploadResult = await uploadImage(selectedImage);
-            imageId = uploadResult.id;
-          } catch (e) {
-            showToast('图片上传失败，请重试', 'error');
-            return;
-          }
-        }
-        
-        // 发布帖子
-        showToast('正在发布...', 'info');
         const res = await fetch('/api/posts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -1531,8 +1166,7 @@ export const INDEX_HTML = `<!DOCTYPE html>
             content,
             author: author || null,
             postType,
-            categoryId: categoryId || null,
-            imageId: imageId
+            categoryId: categoryId || null
           })
         });
 
@@ -1590,15 +1224,6 @@ export const INDEX_HTML = `<!DOCTYPE html>
       body.innerHTML = \`
         <div class="detail-type">\${typeIcon} \${typeName} · \${post.category_name || ''}</div>
         <div class="detail-content">\${escapeHtml(post.content)}</div>
-        \${post.images && post.images.length > 0 ? \`
-          <div class="detail-images">
-            \${post.images.map(img => \`
-              <div class="detail-image-item">
-                <img src="" data-default="\${img.primary_url || img.default_url}" data-telegram="\${img.telegram_url}" alt="帖子图片">
-              </div>
-            \`).join('')}
-          </div>
-        \` : ''}
         <div class="detail-meta">
           <div class="detail-author">
             <div class="avatar">\${authorInitial}</div>
@@ -1627,9 +1252,6 @@ export const INDEX_HTML = `<!DOCTYPE html>
           </div>
         </div>
       \`;
-      
-      // 初始化图片加载
-      initImagesWithFallback(body);
     }
 
     // 关闭详情弹窗
