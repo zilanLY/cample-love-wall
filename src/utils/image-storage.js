@@ -11,7 +11,7 @@ const IMG_SCDN_IO_URL = 'https://img.scdn.io/api/v1.php';
 export async function uploadToDefaultStorage(imageData, filename, storageDestination = 'local') {
   try {
     const formData = new FormData();
-    const blob = new Blob([imageData], { type: 'image/jpeg' });
+    const blob = new Blob([imageData]);
     formData.append('image', blob, filename);
     formData.append('storage_destination', storageDestination);
     
@@ -21,10 +21,16 @@ export async function uploadToDefaultStorage(imageData, filename, storageDestina
     });
     
     if (!response.ok) {
-      throw new Error(`默认存储上传失败: ${response.status}`);
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`图床服务请求失败 (HTTP ${response.status})${errorText ? ': ' + errorText : ''}`);
     }
     
     const result = await response.json();
+    
+    // 检查业务层面是否成功
+    if (result.success === false) {
+      throw new Error(result.message || '图床服务返回失败');
+    }
     
     // 根据 img.scdn.io 的返回格式提取 URL
     if (result.url) {
@@ -33,7 +39,7 @@ export async function uploadToDefaultStorage(imageData, filename, storageDestina
       return result.data.url;
     }
     
-    throw new Error('默认存储返回格式异常');
+    throw new Error('图床返回格式异常，未找到图片 URL');
   } catch (error) {
     console.error('默认存储上传失败:', error);
     throw error;

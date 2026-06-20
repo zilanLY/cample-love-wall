@@ -480,45 +480,70 @@ router.post('/images/upload', async (request, env) => {
   }
 
   try {
-    // 解析 FormData
-    const formData = await request.formData();
+    // 1. 解析 FormData
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (e) {
+      console.error('解析 FormData 失败:', e);
+      return errorResponse('请求格式错误，请检查文件上传格式');
+    }
+
     const file = formData.get('file');
-    
     if (!file) {
       return errorResponse('请选择要上传的图片');
     }
 
-    // 读取文件数据
-    const arrayBuffer = await file.arrayBuffer();
+    // 2. 读取文件数据
+    let arrayBuffer;
+    try {
+      arrayBuffer = await file.arrayBuffer();
+    } catch (e) {
+      console.error('读取文件数据失败:', e);
+      return errorResponse('读取文件失败，请重试');
+    }
+
     const imageData = new Uint8Array(arrayBuffer);
 
-    // 验证图片
-    const validation = validateImage(imageData.buffer, 5 * 1024 * 1024);
+    // 3. 验证图片
+    const validation = validateImage(arrayBuffer, 5 * 1024 * 1024);
     if (!validation.valid) {
       return errorResponse(validation.message);
     }
 
-    // 生成文件名
+    // 4. 生成文件名
     const filename = generateFilename('jpg');
 
-    // 获取 IP 哈希
+    // 5. 获取 IP 哈希
     const ip = getClientIP(request);
     const ipHash = await simpleHash(ip);
 
-    // 双存储上传
-    const uploadResult = await uploadImageDualStorage(imageData.buffer, filename, env);
+    // 6. 上传到图床
+    let uploadResult;
+    try {
+      uploadResult = await uploadImageDualStorage(arrayBuffer, filename, env);
+    } catch (e) {
+      console.error('图床上传失败:', e);
+      return errorResponse(`图片上传失败：${e.message}`);
+    }
 
-    // 保存图片记录到数据库
-    const imageId = await createImage(env.DB, {
-      postId: null, // 暂时不关联帖子，发布时再关联
-      defaultUrl: uploadResult.defaultUrl,
-      telegramUrl: uploadResult.telegramUrl,
-      primaryUrl: uploadResult.primaryUrl,
-      filename,
-      fileSize: imageData.length,
-      uploadIp: ipHash,
-      status: 'active'
-    });
+    // 7. 保存到数据库
+    let imageId;
+    try {
+      imageId = await createImage(env.DB, {
+        postId: null,
+        defaultUrl: uploadResult.defaultUrl,
+        telegramUrl: uploadResult.telegramUrl,
+        primaryUrl: uploadResult.primaryUrl,
+        filename,
+        fileSize: imageData.length,
+        uploadIp: ipHash,
+        status: 'active'
+      });
+    } catch (e) {
+      console.error('保存图片记录到数据库失败:', e);
+      return errorResponse(`保存失败：${e.message}`);
+    }
 
     return successResponse({
       id: imageId,
@@ -529,8 +554,8 @@ router.post('/images/upload', async (request, env) => {
     }, '上传成功');
 
   } catch (e) {
-    console.error('图片上传失败:', e);
-    return errorResponse('图片上传失败，请稍后重试');
+    console.error('图片上传未知错误:', e);
+    return errorResponse(`图片上传失败：${e.message || '未知错误'}`);
   }
 });
 
