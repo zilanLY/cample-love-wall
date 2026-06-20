@@ -983,13 +983,13 @@ export const INDEX_HTML = `<!DOCTYPE html>
           <input type="text" class="form-input" id="postAuthor" placeholder="匿名发布" maxlength="20">
         </div>
         <div class="form-group">
-          <label class="form-label">图片（可选）</label>
+          <label class="form-label">图片/视频（可选）</label>
           <div class="image-upload-area" id="imageUploadArea" onclick="document.getElementById('imageInput').click()">
             <div class="upload-icon">📷</div>
-            <div class="upload-text">点击或拖拽上传图片</div>
-            <div class="upload-hint">支持 JPG、PNG、GIF，最大 5MB</div>
+            <div class="upload-text">点击或拖拽上传图片/视频</div>
+            <div class="upload-hint">图片最大 20MB，视频最大 15MB（自动转为动态图）</div>
           </div>
-          <input type="file" id="imageInput" accept="image/*" style="display: none;" onchange="handleImageSelect(event)">
+          <input type="file" id="imageInput" accept="image/*,video/*" style="display: none;" onchange="handleImageSelect(event)">
           <div class="image-preview" id="imagePreview" style="display: none;">
             <img id="previewImg" src="" alt="预览">
             <button class="remove-image-btn" onclick="removeImage()">✕</button>
@@ -1135,14 +1135,20 @@ export const INDEX_HTML = `<!DOCTYPE html>
     // 处理文件
     function handleFile(file) {
       // 验证文件类型
-      if (!file.type.startsWith('image/')) {
-        showToast('请选择图片文件', 'error');
+      const isImage = file.type.startsWith('image/');
+      const isVideo = file.type.startsWith('video/');
+      
+      if (!isImage && !isVideo) {
+        showToast('请选择图片或视频文件', 'error');
         return;
       }
       
-      // 验证文件大小（5MB）
-      if (file.size > 5 * 1024 * 1024) {
-        showToast('图片大小不能超过 5MB', 'error');
+      // 验证文件大小
+      const maxSize = isImage ? 20 * 1024 * 1024 : 15 * 1024 * 1024;
+      const maxSizeText = isImage ? '20MB' : '15MB';
+      
+      if (file.size > maxSize) {
+        showToast((isImage ? '图片' : '视频') + '大小不能超过 ' + maxSizeText, 'error');
         return;
       }
       
@@ -1152,7 +1158,26 @@ export const INDEX_HTML = `<!DOCTYPE html>
       // 显示预览
       const reader = new FileReader();
       reader.onload = function(e) {
-        document.getElementById('previewImg').src = e.target.result;
+        const previewImg = document.getElementById('previewImg');
+        if (isVideo) {
+          // 视频文件显示第一帧作为预览
+          const video = document.createElement('video');
+          video.src = e.target.result;
+          video.muted = true;
+          video.playsInline = true;
+          video.onloadeddata = function() {
+            video.currentTime = 0.1;
+          };
+          video.onseeked = function() {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            previewImg.src = canvas.toDataURL('image/jpeg');
+          };
+        } else {
+          previewImg.src = e.target.result;
+        }
         document.getElementById('imagePreview').style.display = 'block';
         document.getElementById('imageUploadArea').style.display = 'none';
       };
@@ -1168,7 +1193,7 @@ export const INDEX_HTML = `<!DOCTYPE html>
       document.getElementById('imageInput').value = '';
     }
 
-    // 上传图片
+    // 上传图片/视频
     function uploadImage(file) {
       return new Promise((resolve, reject) => {
         const formData = new FormData();
@@ -1227,7 +1252,12 @@ export const INDEX_HTML = `<!DOCTYPE html>
           reject(new Error('上传超时，请重试'));
         };
 
-        xhr.open('POST', '/api/images/upload', true);
+        // 根据文件类型选择上传接口
+        const uploadUrl = file.type.startsWith('video/') 
+          ? '/api/videos/upload' 
+          : '/api/images/upload';
+
+        xhr.open('POST', uploadUrl, true);
         xhr.send(formData);
       });
     }

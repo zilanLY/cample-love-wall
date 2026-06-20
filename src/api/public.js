@@ -32,9 +32,11 @@ import {
   updateImage
 } from '../db/database.js';
 import {
-  uploadImageDualStorage,
+  uploadMedia,
   validateImage,
-  generateFilename
+  validateVideo,
+  generateFilename,
+  uploadImageDualStorage // 向后兼容
 } from '../utils/image-storage.js';
 import { aiReview } from '../utils/ai-review.js';
 import { rateLimitMiddleware } from '../middleware/auth.js';
@@ -519,9 +521,9 @@ router.post('/images/upload', async (request, env) => {
     const ipHash = await simpleHash(ip);
 
     // 6. 上传到图床
-    let uploadResult;
+    let fileUrl;
     try {
-      uploadResult = await uploadImageDualStorage(arrayBuffer, filename, env);
+      fileUrl = await uploadMedia(arrayBuffer, filename);
     } catch (e) {
       console.error('图床上传失败:', e);
       return errorResponse(`图片上传失败：${e.message}`);
@@ -532,9 +534,9 @@ router.post('/images/upload', async (request, env) => {
     try {
       imageId = await createImage(env.DB, {
         postId: null,
-        defaultUrl: uploadResult.defaultUrl,
-        telegramUrl: uploadResult.telegramUrl,
-        primaryUrl: uploadResult.primaryUrl,
+        defaultUrl: fileUrl,
+        telegramUrl: fileUrl,
+        primaryUrl: fileUrl,
         filename,
         fileSize: imageData.length,
         uploadIp: ipHash,
@@ -547,15 +549,106 @@ router.post('/images/upload', async (request, env) => {
 
     return successResponse({
       id: imageId,
-      defaultUrl: uploadResult.defaultUrl,
-      telegramUrl: uploadResult.telegramUrl,
-      primaryUrl: uploadResult.primaryUrl,
+      url: fileUrl,
+      defaultUrl: fileUrl,
+      telegramUrl: fileUrl,
+      primaryUrl: fileUrl,
       filename
     }, '上传成功');
 
   } catch (e) {
     console.error('图片上传未知错误:', e);
     return errorResponse(`图片上传失败：${e.message || '未知错误'}`);
+  }
+});
+
+// 上传视频
+router.post('/videos/upload', async (request, env) => {
+  // 限流检查
+  const rateLimit = await rateLimitMiddleware(request, env, 'video_upload', 5, 3600);
+  if (!rateLimit.allowed) {
+    return errorResponse(rateLimit.message, 429, 429);
+  }
+
+  try {
+    // 1. 解析 FormData
+    let formData;
+    try {
+      formData = await request.formData();
+    } catch (e) {
+      console.error('解析 FormData 失败:', e);
+      return errorResponse('请求格式错误，请检查文件上传格式');
+    }
+
+    const file = formData.get('file');
+    if (!file) {
+      return errorResponse('请选择要上传的视频');
+    }
+
+    // 2. 读取文件数据
+    let arrayBuffer;
+    try {
+      arrayBuffer = await file.arrayBuffer();
+    } catch (e) {
+      console.error('读取文件数据失败:', e);
+      return errorResponse('读取文件失败，请重试');
+    }
+
+    const fileData = new Uint8Array(arrayBuffer);
+
+    // 3. 验证视频
+    const validation = validateVideo(arrayBuffer, 15 * 1024 * 1024);
+    if (!validation.valid) {
+      return errorResponse(validation.message);
+    }
+
+    // 4. 生成文件名
+    const filename = generateFilename('mp4');
+
+    // 5. 获取 IP 哈希
+    const ip = getClientIP(request);
+    const ipHash = await simpleHash(ip);
+
+    // 6. 上传到图床（图床会自动转为动态 WebP）
+    let fileUrl;
+    try {
+      fileUrl = await uploadMedia(arrayBuffer, filename);
+    } catch (e) {
+      console.error('图床上传失败:', e);
+      return errorResponse(`视频上传失败：${e.message}`);
+    }
+
+    // 7. 保存到数据库（复用 images 表，因为图床转成了动态 WebP 图片）
+    let imageId;
+    try {
+      imageId = await createImage(env.DB, {
+        postId: null,
+        defaultUrl: fileUrl,
+        telegramUrl: fileUrl,
+        primaryUrl: fileUrl,
+        filename,
+        fileSize: fileData.length,
+        uploadIp: ipHash,
+        status: 'active'
+      });
+    } catch (e) {
+      console.error('保存视频记录到数据库失败:', e);
+      return errorResponse(`保存失败：${e.message}`);
+    }
+
+    return successResponse({
+      id: imageId,
+      url: fileUrl,
+      defaultUrl: fileUrl,
+      telegramUrl: fileUrl,
+      primaryUrl: fileUrl,
+      filename,
+      type: 'video'
+    }, '上传成功');
+
+  } catch (e) {
+    console.error('视频上传未知错误:', e);
+    return errorResponse(`视频上传失败：${e.message || '未知错误'}`);
   }
 });
 
