@@ -515,6 +515,16 @@ router.get('/ai-config', async (request, env) => {
     try {
       config = await env.KV.get('config:ai', { type: 'json' });
     } catch (e) {}
+    
+    // 如果 KV 中没有配置，尝试从数据库中读取
+    if (!config) {
+      try {
+        const dbConfig = await getSetting(env.DB, 'ai_config_detail');
+        if (dbConfig) {
+          config = dbConfig;
+        }
+      } catch (e) {}
+    }
 
     // 从数据库获取基础配置
     const aiEnabled = await getSetting(env.DB, 'ai_enabled');
@@ -548,7 +558,7 @@ router.put('/ai-config', async (request, env) => {
       await setSetting(env.DB, 'ai_strictness', body.strictness);
     }
 
-    // 保存详细配置到 KV
+    // 保存详细配置到 KV 和数据库
     const aiConfig = {
       autoReject: body.autoReject !== false,
       reviewDimensions: body.reviewDimensions || {
@@ -566,6 +576,13 @@ router.put('/ai-config', async (request, env) => {
       await env.KV.put('config:ai', JSON.stringify(aiConfig));
     } catch (e) {
       console.warn('保存 AI 配置到 KV 失败:', e);
+    }
+    
+    // 同时保存到数据库作为备份
+    try {
+      await setSetting(env.DB, 'ai_config_detail', aiConfig);
+    } catch (e) {
+      console.warn('保存 AI 配置到数据库失败:', e);
     }
 
     return successResponse(null, '配置保存成功');

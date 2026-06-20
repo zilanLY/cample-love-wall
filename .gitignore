@@ -33,3 +33,9 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Temporary dev scripts
+add_toggle_sidebar.py
+update-html-js.py
+update_html_js.py
+test_kv.js

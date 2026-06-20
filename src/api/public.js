@@ -157,6 +157,17 @@ router.post('/posts', async (request, env) => {
       } catch (e) {
         // KV 读取失败，使用默认配置
       }
+      
+      // 如果 KV 中没有配置，尝试从数据库中读取
+      if (!aiConfig) {
+        try {
+          const { getSetting } = await import('../db/database.js');
+          const dbConfig = await getSetting(env.DB, 'ai_config_detail');
+          if (dbConfig) {
+            aiConfig = dbConfig;
+          }
+        } catch (e) {}
+      }
 
       if (aiConfig) {
         const aiReviewResult = await aiReview(safeContent, {
@@ -358,6 +369,16 @@ router.post('/posts/:id/comments', async (request, env) => {
       try {
         aiConfig = await env.KV.get('config:ai', { type: 'json' });
       } catch (e) {}
+      
+      // 如果 KV 中没有配置，尝试从数据库中读取
+      if (!aiConfig) {
+        try {
+          const dbConfig = await getSetting(env.DB, 'ai_config_detail');
+          if (dbConfig) {
+            aiConfig = dbConfig;
+          }
+        } catch (e) {}
+      }
 
       if (aiConfig) {
         const aiReviewResult = await aiReview(safeContent, {
