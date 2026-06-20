@@ -28,9 +28,17 @@ export const ADMIN_HTML = `<!DOCTYPE html>
         .btn-sm { padding: 6px 14px; font-size: 13px; border-radius: 6px; }
         .error-message { color: #f44336; font-size: 13px; margin-top: 10px; text-align: center; }
         .admin-layout { display: flex; min-height: 100vh; }
-        .sidebar { width: 220px; background: linear-gradient(180deg, #1a1f36 0%, #2d3748 100%); color: white; padding: 20px 0; position: fixed; height: 100vh; overflow-y: auto; }
-        .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; }
+        .sidebar { width: 220px; background: linear-gradient(180deg, #1a1f36 0%, #2d3748 100%); color: white; padding: 20px 0; position: fixed; height: 100vh; overflow-y: auto; transition: width 0.3s ease; z-index: 100; }
+        .sidebar.collapsed { width: 60px; }
+        .sidebar.collapsed .sidebar-header h3 span,
+        .sidebar.collapsed .sidebar-menu a span,
+        .sidebar.collapsed .user-name,
+        .sidebar.collapsed .logout-btn span { display: none; }
+        .sidebar-header { padding: 0 20px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .sidebar-header h3 { font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .menu-toggle { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 16px; padding: 4px 6px; border-radius: 6px; transition: all 0.3s; }
+        .menu-toggle:hover { background: rgba(255,255,255,0.1); color: white; }
+        .sidebar.collapsed .menu-toggle .menu-toggle-icon { transform: rotate(180deg); display: inline-block; }
         .sidebar-menu { list-style: none; }
         .sidebar-menu li { margin-bottom: 5px; }
         .sidebar-menu a { display: flex; align-items: center; gap: 12px; padding: 12px 20px; color: rgba(255,255,255,0.7); text-decoration: none; transition: all 0.3s; cursor: pointer; font-size: 14px; }
@@ -148,6 +156,9 @@ export const ADMIN_HTML = `<!DOCTYPE html>
         <div class="sidebar">
             <div class="sidebar-header">
                 <h3>🎯 <span>心愿墙管理</span></h3>
+                <button class="menu-toggle" onclick="toggleSidebar()" title="收起/展开菜单">
+                    <span class="menu-toggle-icon">«</span>
+                </button>
             </div>
             <ul class="sidebar-menu">
                 <li><a class="active" data-page="dashboard" onclick="switchPage('dashboard')">
@@ -187,7 +198,7 @@ export const ADMIN_HTML = `<!DOCTYPE html>
         </div>
 
         <div class="main-content">
-            <div id="page-dashboard" class="page">
+            <div id="page-dashboard" class="page" style="display:none;">
                 <div class="page-header">
                     <h1>仪表盘</h1>
                     <p>查看心愿墙的整体数据概览</p>
@@ -846,11 +857,34 @@ export const ADMIN_HTML = `<!DOCTYPE html>
             const user = JSON.parse(localStorage.getItem('admin_user') || '{}');
             document.getElementById('userName').textContent = user.username || 'admin';
             document.getElementById('userAvatar').textContent = (user.username || 'A').charAt(0).toUpperCase();
-            loadDashboard();
+            // 恢复侧边栏状态
+            if (localStorage.getItem('sidebar_collapsed') === 'true') {
+                document.querySelector('.sidebar').classList.add('collapsed');
+                document.querySelector('.main-content').style.marginLeft = '60px';
+            }
+            // 从 URL hash 读取页面
+            const hash = location.hash.replace('#/', '');
+            if (hash && document.getElementById('page-' + hash)) {
+                switchPage(hash);
+            } else {
+                document.getElementById('page-dashboard').style.display = 'block';
+                loadDashboard();
+            }
+            // 监听 hash 变化
+            window.addEventListener('hashchange', function() {
+                const newHash = location.hash.replace('#/', '');
+                if (newHash && document.getElementById('page-' + newHash) && newHash !== currentPage) {
+                    switchPage(newHash);
+                }
+            });
         }
 
         function switchPage(page) {
             currentPage = page;
+            // 更新 URL hash
+            if (location.hash !== '#/' + page) {
+                location.hash = '#/' + page;
+            }
             document.querySelectorAll('.sidebar-menu a').forEach(a => {
                 a.classList.toggle('active', a.dataset.page === page);
             });
@@ -866,6 +900,19 @@ export const ADMIN_HTML = `<!DOCTYPE html>
                 case 'ai-config': loadAIConfig(); break;
                 case 'settings': loadSettings(); break;
             }
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            sidebar.classList.toggle('collapsed');
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            if (isCollapsed) {
+                mainContent.style.marginLeft = '60px';
+            } else {
+                mainContent.style.marginLeft = '220px';
+            }
+            localStorage.setItem('sidebar_collapsed', isCollapsed);
         }
 
         async function apiRequest(url, options = {}) {
