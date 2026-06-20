@@ -11,13 +11,18 @@ const IMG_SCDN_IO_URL = 'https://img.scdn.io/api/v1.php';
 export async function uploadToDefaultStorage(imageData, filename, storageDestination = 'local') {
   try {
     const formData = new FormData();
-    const blob = new Blob([imageData]);
+    const blob = new Blob([imageData], { type: 'image/jpeg' });
     formData.append('image', blob, filename);
     formData.append('storage_destination', storageDestination);
     
     const response = await fetch(IMG_SCDN_IO_URL, {
       method: 'POST',
-      body: formData
+      body: formData,
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'zh-CN,zh;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
     });
     
     if (!response.ok) {
@@ -77,6 +82,8 @@ export async function uploadImageDualStorage(imageData, filename, env) {
     primaryUrl: null
   };
   
+  const errors = [];
+  
   // 并行上传到两个存储
   const promises = [];
   
@@ -88,7 +95,8 @@ export async function uploadImageDualStorage(imageData, filename, env) {
         result.primaryUrl = url; // 默认存储作为主 URL
       })
       .catch(err => {
-        console.warn('默认存储上传失败，将使用 Telegram 存储作为备选:', err.message);
+        console.warn('默认存储上传失败:', err.message);
+        errors.push(`默认存储: ${err.message}`);
       })
   );
   
@@ -104,6 +112,7 @@ export async function uploadImageDualStorage(imageData, filename, env) {
       })
       .catch(err => {
         console.warn('Telegram 存储上传失败:', err.message);
+        errors.push(`Telegram存储: ${err.message}`);
       })
   );
   
@@ -111,7 +120,7 @@ export async function uploadImageDualStorage(imageData, filename, env) {
   
   // 检查是否至少有一个存储成功
   if (!result.primaryUrl) {
-    throw new Error('所有存储方式都失败了');
+    throw new Error(`所有存储方式都失败了 [${errors.join('; ')}]`);
   }
   
   return result;
