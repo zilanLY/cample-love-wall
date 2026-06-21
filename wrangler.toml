@@ -3,18 +3,36 @@ main = "src/index.js"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# D1 数据库
-[[d1_databases]]
+# ============================================
+# 生产环境配置
+# 部署后请在 Cloudflare 控制台手动绑定 D1 和 KV 资源
+# ============================================
+
+[vars]
+# 初始管理员密码（部署后请在管理后台修改）
+ADMIN_INIT_PASSWORD = "admin123"
+# JWT 密钥（生产环境请修改为随机字符串）
+JWT_SECRET = "your-jwt-secret-change-this-in-production"
+
+# ============================================
+# 开发环境配置（本地预览用）
+# 使用方式：wrangler dev --env dev --local
+# ============================================
+
+[env.dev]
+name = "cample-love-wall-dev"
+
+# D1 数据库（本地模拟）
+[[env.dev.d1_databases]]
 binding = "DB"
 database_name = "wish-wall"
 database_id = "local-db-id"
 
-# KV 命名空间
-[[kv_namespaces]]
+# KV 命名空间（本地模拟）
+[[env.dev.kv_namespaces]]
 binding = "KV"
 id = "local-kv-id"
 
-[vars]
-# 环境变量
+[env.dev.vars]
 ADMIN_INIT_PASSWORD = "admin123"
-JWT_SECRET = "your-jwt-secret-change-this-in-production"
+JWT_SECRET = "dev-jwt-secret-for-local-testing-only"
