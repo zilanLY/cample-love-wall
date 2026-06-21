@@ -44,6 +44,7 @@ import {
 } from '../db/database.js';
 import { authMiddleware } from '../middleware/auth.js';
 import { testAIConfig } from '../utils/ai-review.js';
+import { testGitHubConfig } from '../utils/image-storage.js';
 
 const router = Router({ base: '/api/admin' });
 
@@ -510,33 +511,45 @@ router.delete('/sensitive-words/:id', async (request, env) => {
 // AI 审核配置
 router.get('/ai-config', async (request, env) => {
   try {
-    // 从 KV 获取配置
+    // 优先从数据库获取详细配置（数据库是数据源，KV 是缓存）
     let config = null;
     try {
-      config = await env.KV.get('config:ai', { type: 'json' });
-    } catch (e) {}
+      const dbConfig = await getSetting(env.DB, 'ai_config_detail');
+      if (dbConfig) {
+        config = dbConfig;
+        // 异步更新 KV 缓存
+        env.KV.put('config:ai', JSON.stringify(config)).catch(e => 
+          console.warn('更新 KV 缓存失败:', e)
+        );
+      }
+    } catch (e) {
+      console.warn('从数据库读取 AI 配置失败，尝试从 KV 读取:', e);
+    }
     
-    // 如果 KV 中没有配置，尝试从数据库中读取
+    // 如果数据库中没有配置，尝试从 KV 中读取
     if (!config) {
       try {
-        const dbConfig = await getSetting(env.DB, 'ai_config_detail');
-        if (dbConfig) {
-          config = dbConfig;
+        const kvConfig = await env.KV.get('config:ai', { type: 'json' });
+        if (kvConfig) {
+          config = kvConfig;
         }
       } catch (e) {}
     }
 
-    // 从数据库获取基础配置
+    // 从数据库获取基础配置（以数据库为准）
     const aiEnabled = await getSetting(env.DB, 'ai_enabled');
     const aiProvider = await getSetting(env.DB, 'ai_provider');
     const aiStrictness = await getSetting(env.DB, 'ai_strictness');
 
-    return successResponse({
-      enabled: aiEnabled || false,
+    // 构建返回结果，基础配置优先（数据库为准）
+    const result = {
+      enabled: aiEnabled === true ? true : false, // 确保是布尔值
       provider: aiProvider || 'openai',
       strictness: aiStrictness || 'medium',
-      ...config
-    });
+      ...(config || {})
+    };
+
+    return successResponse(result);
   } catch (e) {
     console.error('获取 AI 配置失败:', e);
     return errorResponse('获取配置失败');
@@ -558,7 +571,7 @@ router.put('/ai-config', async (request, env) => {
       await setSetting(env.DB, 'ai_strictness', body.strictness);
     }
 
-    // 保存详细配置到 KV 和数据库
+    // 保存详细配置到数据库（数据库为主）
     const aiConfig = {
       autoReject: body.autoReject !== false,
       reviewDimensions: body.reviewDimensions || {
@@ -572,20 +585,28 @@ router.put('/ai-config', async (request, env) => {
       xunfei: body.xunfei || null
     };
 
+    // 先保存到数据库
+    try {
+      await setSetting(env.DB, 'ai_config_detail', aiConfig);
+    } catch (e) {
+      console.error('保存 AI 配置到数据库失败:', e);
+      throw e;
+    }
+    
+    // 再更新 KV 缓存
     try {
       await env.KV.put('config:ai', JSON.stringify(aiConfig));
     } catch (e) {
       console.warn('保存 AI 配置到 KV 失败:', e);
     }
-    
-    // 同时保存到数据库作为备份
-    try {
-      await setSetting(env.DB, 'ai_config_detail', aiConfig);
-    } catch (e) {
-      console.warn('保存 AI 配置到数据库失败:', e);
-    }
 
-    return successResponse(null, '配置保存成功');
+    // 返回最新的配置
+    return successResponse({
+      enabled: body.enabled,
+      provider: body.provider,
+      strictness: body.strictness,
+      ...aiConfig
+    }, '配置保存成功');
   } catch (e) {
     console.error('保存 AI 配置失败:', e);
     return errorResponse('保存失败');
@@ -633,6 +654,77 @@ router.put('/settings', async (request, env) => {
   } catch (e) {
     console.error('保存系统设置失败:', e);
     return errorResponse('保存失败');
+  }
+});
+
+// GitHub 仓库配置
+// 获取 GitHub 仓库列表
+router.get('/storage/github/repos', async (request, env) => {
+  try {
+    const repos = await getSetting(env.DB, 'github_repos');
+    const strategy = await getSetting(env.DB, 'github_repo_strategy') || 'round_robin';
+    
+    return successResponse({
+      repos: repos || [],
+      strategy
+    });
+  } catch (e) {
+    console.error('获取 GitHub 仓库配置失败:', e);
+    return errorResponse('获取配置失败');
+  }
+});
+
+// 保存 GitHub 仓库列表
+router.put('/storage/github/repos', async (request, env) => {
+  const body = await parseBody(request);
+  const { repos, strategy } = body;
+  
+  try {
+    // 验证仓库列表
+    if (!Array.isArray(repos)) {
+      return errorResponse('仓库列表格式错误');
+    }
+    
+    // 为每个仓库生成 ID（如果没有的话）
+    const processedRepos = repos.map((repo, index) => ({
+      ...repo,
+      id: repo.id || `repo_${Date.now()}_${index}`,
+      enabled: repo.enabled !== false
+    }));
+    
+    // 保存到数据库
+    await setSetting(env.DB, 'github_repos', processedRepos);
+    
+    // 保存策略
+    if (strategy) {
+      await setSetting(env.DB, 'github_repo_strategy', strategy);
+    }
+    
+    // 清除 KV 缓存
+    try {
+      await env.KV.delete('config:storage');
+    } catch (e) {}
+    
+    return successResponse({
+      repos: processedRepos,
+      strategy: strategy || 'round_robin'
+    }, '保存成功');
+  } catch (e) {
+    console.error('保存 GitHub 仓库配置失败:', e);
+    return errorResponse('保存失败: ' + e.message);
+  }
+});
+
+// 测试单个 GitHub 仓库配置
+router.post('/storage/github/test', async (request, env) => {
+  const body = await parseBody(request);
+
+  try {
+    const result = await testGitHubConfig(body);
+    return successResponse(result, result.success ? '测试成功' : '测试失败');
+  } catch (e) {
+    console.error('测试 GitHub 配置失败:', e);
+    return errorResponse('测试失败: ' + e.message);
   }
 });
 

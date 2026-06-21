@@ -39,3 +39,10 @@ add_toggle_sidebar.py
 update-html-js.py
 update_html_js.py
 test_kv.js
+build-admin.js
+build-temp.js
+gen-admin.py
+localtunnel*.log
+lt*.log
+tunnel.log
+cpolar*.log

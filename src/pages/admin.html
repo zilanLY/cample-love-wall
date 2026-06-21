@@ -572,6 +572,55 @@
                     </div>
                 </div>
 
+                <!-- 图片存储设置 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3>图片存储设置</h3>
+                        <button class="btn btn-primary btn-sm" onclick="openGitHubRepoModal()">+ 添加仓库</button>
+                    </div>
+                    
+                    <div class="config-item">
+                        <div>
+                            <div class="config-label">仓库选择策略</div>
+                            <div class="config-desc">多个仓库时如何选择使用哪个仓库</div>
+                        </div>
+                        <select id="repoStrategy" style="padding:8px;border-radius:8px;border:1px solid #ddd;">
+                            <option value="round_robin">轮询</option>
+                            <option value="random">随机</option>
+                            <option value="weighted_random">加权随机</option>
+                        </select>
+                    </div>
+                    
+                    <div style="margin-top:20px;">
+                        <div class="config-label" style="margin-bottom:10px;">仓库列表</div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>仓库名称</th>
+                                        <th>所有者/仓库</th>
+                                        <th>分支</th>
+                                        <th>权重</th>
+                                        <th>状态</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="githubReposTableBody">
+                                    <tr>
+                                        <td colspan="6" style="text-align:center;color:#999;padding:30px;">
+                                            暂无仓库配置，点击上方「添加仓库」按钮添加
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:20px;text-align:right;">
+                        <button class="btn btn-primary" onclick="saveGitHubRepos()">保存存储设置</button>
+                    </div>
+                </div>
+
                 <!-- 管理员账户设置 -->
                 <div class="card">
                     <div class="card-header"><h3>管理员账户设置</h3></div>
@@ -592,6 +641,77 @@
                         <button class="btn btn-sm btn-outline" onclick="showChangePasswordModal()">修改密码</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GitHub 仓库编辑弹窗 -->
+    <div class="modal-overlay" id="githubRepoModal">
+        <div class="modal" style="max-width:500px;">
+            <div class="modal-header">
+                <h3 id="githubRepoModalTitle">添加仓库</h3>
+                <button class="modal-close" onclick="closeModal('githubRepoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="githubRepoId">
+                <div class="form-group">
+                    <label>仓库名称</label>
+                    <input type="text" id="githubRepoName" placeholder="例如：主图仓库">
+                </div>
+                <div class="form-group">
+                    <label>GitHub Token</label>
+                    <input type="password" id="githubRepoToken" placeholder="ghp_xxxxxxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>仓库所有者</label>
+                    <input type="text" id="githubRepoOwner" placeholder="username">
+                </div>
+                <div class="form-group">
+                    <label>仓库名称</label>
+                    <input type="text" id="githubRepoRepo" placeholder="images-repo">
+                </div>
+                <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+                    <div>
+                        <label>分支名称</label>
+                        <input type="text" id="githubRepoBranch" value="main">
+                    </div>
+                    <div>
+                        <label>权重</label>
+                        <input type="number" id="githubRepoWeight" value="1" min="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>存储路径前缀</label>
+                    <input type="text" id="githubRepoPath" value="images">
+                </div>
+                <div class="config-item">
+                    <div>
+                        <div class="config-label">使用 jsDelivr CDN</div>
+                        <div class="config-desc">启用后通过 jsDelivr 加速访问</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="githubRepoUseJsDelivr" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="config-item">
+                    <div>
+                        <div class="config-label">启用仓库</div>
+                        <div class="config-desc">禁用后该仓库不会被使用</div>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="githubRepoEnabled" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div style="margin-top:15px;">
+                    <button class="btn btn-secondary btn-sm" onclick="testGitHubRepoConnection()">测试连接</button>
+                    <span id="testResult" style="margin-left:10px;font-size:13px;"></span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('githubRepoModal')">取消</button>
+                <button class="btn btn-primary" onclick="saveGitHubRepo()">保存</button>
             </div>
         </div>
     </div>
@@ -1404,6 +1524,9 @@
             document.getElementById('commentMaxLength').value = settings.comment_max_length || 200;
             document.getElementById('commentRateLimit').value = settings.comment_rate_limit || 10;
             
+            // 加载 GitHub 仓库配置
+            loadGitHubRepos();
+            
             // 加载管理员信息
             const profileData = await apiRequest('/api/admin/profile');
             if (profileData && profileData.code === 0) {
@@ -1424,6 +1547,234 @@
             };
             const data = await apiRequest('/api/admin/settings', { method: 'PUT', body: JSON.stringify(settings) });
             if (data && data.code === 0) { showToast('设置保存成功', 'success'); }
+        }
+
+        // GitHub 仓库相关函数
+        let githubRepos = [];
+
+        async function loadGitHubRepos() {
+            try {
+                const data = await apiRequest('/api/admin/storage/github/repos');
+                if (data && data.code === 0) {
+                    githubRepos = data.data.repos || [];
+                    document.getElementById('repoStrategy').value = data.data.strategy || 'round_robin';
+                    renderGitHubReposTable();
+                }
+            } catch (e) {
+                console.error('加载 GitHub 仓库配置失败:', e);
+            }
+        }
+
+        function renderGitHubReposTable() {
+            const tbody = document.getElementById('githubReposTableBody');
+            if (githubRepos.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align:center;color:#999;padding:30px;">
+                            暂无仓库配置，点击上方「添加仓库」按钮添加
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = githubRepos.map(repo => `
+                <tr>
+                    <td>${repo.name || '未命名'}</td>
+                    <td>${repo.owner}/${repo.repo}</td>
+                    <td>${repo.branch || 'main'}</td>
+                    <td>${repo.weight || 1}</td>
+                    <td>
+                        <span class="status-badge ${repo.enabled !== false ? 'approved' : 'rejected'}">
+                            ${repo.enabled !== false ? '启用' : '禁用'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn btn-sm btn-secondary" onclick="testGitHubRepo('${repo.id}')">测试</button>
+                            <button class="btn btn-sm btn-secondary" onclick="openGitHubRepoModal('${repo.id}')">编辑</button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteGitHubRepo('${repo.id}')">删除</button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function openGitHubRepoModal(repoId) {
+            const modal = document.getElementById('githubRepoModal');
+            const title = document.getElementById('githubRepoModalTitle');
+            
+            if (repoId) {
+                // 编辑模式
+                const repo = githubRepos.find(r => r.id === repoId);
+                if (!repo) return;
+                
+                title.textContent = '编辑仓库';
+                document.getElementById('githubRepoId').value = repo.id;
+                document.getElementById('githubRepoName').value = repo.name || '';
+                document.getElementById('githubRepoToken').value = repo.token || '';
+                document.getElementById('githubRepoOwner').value = repo.owner || '';
+                document.getElementById('githubRepoRepo').value = repo.repo || '';
+                document.getElementById('githubRepoBranch').value = repo.branch || 'main';
+                document.getElementById('githubRepoPath').value = repo.path || 'images';
+                document.getElementById('githubRepoWeight').value = repo.weight || 1;
+                document.getElementById('githubRepoUseJsDelivr').checked = repo.useJsDelivr !== false;
+                document.getElementById('githubRepoEnabled').checked = repo.enabled !== false;
+            } else {
+                // 添加模式
+                title.textContent = '添加仓库';
+                document.getElementById('githubRepoId').value = '';
+                document.getElementById('githubRepoName').value = '';
+                document.getElementById('githubRepoToken').value = '';
+                document.getElementById('githubRepoOwner').value = '';
+                document.getElementById('githubRepoRepo').value = '';
+                document.getElementById('githubRepoBranch').value = 'main';
+                document.getElementById('githubRepoPath').value = 'images';
+                document.getElementById('githubRepoWeight').value = 1;
+                document.getElementById('githubRepoUseJsDelivr').checked = true;
+                document.getElementById('githubRepoEnabled').checked = true;
+            }
+            
+            document.getElementById('testResult').textContent = '';
+            modal.classList.add('show');
+        }
+
+        function saveGitHubRepo() {
+            const id = document.getElementById('githubRepoId').value;
+            const repoData = {
+                name: document.getElementById('githubRepoName').value.trim(),
+                token: document.getElementById('githubRepoToken').value.trim(),
+                owner: document.getElementById('githubRepoOwner').value.trim(),
+                repo: document.getElementById('githubRepoRepo').value.trim(),
+                branch: document.getElementById('githubRepoBranch').value.trim() || 'main',
+                path: document.getElementById('githubRepoPath').value.trim() || 'images',
+                weight: parseInt(document.getElementById('githubRepoWeight').value) || 1,
+                useJsDelivr: document.getElementById('githubRepoUseJsDelivr').checked,
+                enabled: document.getElementById('githubRepoEnabled').checked
+            };
+
+            if (!repoData.name) {
+                showToast('请输入仓库名称', 'error');
+                return;
+            }
+            if (!repoData.token) {
+                showToast('请输入 GitHub Token', 'error');
+                return;
+            }
+            if (!repoData.owner) {
+                showToast('请输入仓库所有者', 'error');
+                return;
+            }
+            if (!repoData.repo) {
+                showToast('请输入仓库名称', 'error');
+                return;
+            }
+
+            if (id) {
+                // 编辑现有仓库
+                const index = githubRepos.findIndex(r => r.id === id);
+                if (index !== -1) {
+                    githubRepos[index] = { ...githubRepos[index], ...repoData };
+                }
+            } else {
+                // 添加新仓库
+                const newRepo = {
+                    id: 'repo_' + Date.now(),
+                    ...repoData
+                };
+                githubRepos.push(newRepo);
+            }
+
+            renderGitHubReposTable();
+            closeModal('githubRepoModal');
+            showToast('仓库保存成功，记得点击「保存存储设置」按钮保存', 'success');
+        }
+
+        function deleteGitHubRepo(repoId) {
+            if (!confirm('确定要删除这个仓库吗？')) return;
+            
+            githubRepos = githubRepos.filter(r => r.id !== repoId);
+            renderGitHubReposTable();
+            showToast('仓库已删除，记得点击「保存存储设置」按钮保存', 'success');
+        }
+
+        async function testGitHubRepo(repoId) {
+            const repo = githubRepos.find(r => r.id === repoId);
+            if (!repo) return;
+            
+            try {
+                showToast('正在测试连接...', 'success');
+                const data = await apiRequest('/api/admin/storage/github/test', {
+                    method: 'POST',
+                    body: JSON.stringify(repo)
+                });
+                
+                if (data && data.code === 0 && data.data.success) {
+                    showToast('测试成功', 'success');
+                } else {
+                    showToast('测试失败：' + (data?.data?.message || '未知错误'), 'error');
+                }
+            } catch (e) {
+                showToast('测试失败：' + e.message, 'error');
+            }
+        }
+
+        async function testGitHubRepoConnection() {
+            const repoData = {
+                token: document.getElementById('githubRepoToken').value.trim(),
+                owner: document.getElementById('githubRepoOwner').value.trim(),
+                repo: document.getElementById('githubRepoRepo').value.trim(),
+                branch: document.getElementById('githubRepoBranch').value.trim() || 'main',
+                path: document.getElementById('githubRepoPath').value.trim() || 'images'
+            };
+
+            if (!repoData.token || !repoData.owner || !repoData.repo) {
+                showToast('请先填写 Token、所有者和仓库名称', 'error');
+                return;
+            }
+
+            const resultEl = document.getElementById('testResult');
+            resultEl.textContent = '测试中...';
+            resultEl.style.color = '#666';
+
+            try {
+                const data = await apiRequest('/api/admin/storage/github/test', {
+                    method: 'POST',
+                    body: JSON.stringify(repoData)
+                });
+                
+                if (data && data.code === 0 && data.data.success) {
+                    resultEl.textContent = '✓ 测试成功';
+                    resultEl.style.color = '#4caf50';
+                } else {
+                    resultEl.textContent = '✗ 测试失败：' + (data?.data?.message || '未知错误');
+                    resultEl.style.color = '#f44336';
+                }
+            } catch (e) {
+                resultEl.textContent = '✗ 测试失败：' + e.message;
+                resultEl.style.color = '#f44336';
+            }
+        }
+
+        async function saveGitHubRepos() {
+            try {
+                const strategy = document.getElementById('repoStrategy').value;
+                const data = await apiRequest('/api/admin/storage/github/repos', {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        repos: githubRepos,
+                        strategy
+                    })
+                });
+                
+                if (data && data.code === 0) {
+                    showToast('存储设置保存成功', 'success');
+                } else {
+                    showToast('保存失败：' + (data?.message || '未知错误'), 'error');
+                }
+            } catch (e) {
+                showToast('保存失败：' + e.message, 'error');
+            }
         }
 
         // 修改用户名相关函数

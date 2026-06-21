@@ -375,7 +375,9 @@ export async function initDatabase(db) {
     ['comment_enabled', 'true'],
     ['comment_need_review', 'true'],
     ['comment_max_length', '200'],
-    ['comment_rate_limit', '10']
+    ['comment_rate_limit', '10'],
+    ['github_repos', '[]'],
+    ['github_repo_strategy', '"round_robin"']
   ];
   
   const insertSetting = db.prepare(`

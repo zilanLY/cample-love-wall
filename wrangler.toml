@@ -3,16 +3,16 @@ main = "src/index.js"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
-# D1 数据库（部署后在 Cloudflare 控制台绑定）
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "wish-wall"
-# database_id = "your-database-id"
+# D1 数据库
+[[d1_databases]]
+binding = "DB"
+database_name = "wish-wall"
+database_id = "local-db-id"
 
-# KV 命名空间（部署后在 Cloudflare 控制台绑定）
-# [[kv_namespaces]]
-# binding = "KV"
-# id = "your-kv-namespace-id"
+# KV 命名空间
+[[kv_namespaces]]
+binding = "KV"
+id = "local-kv-id"
 
 [vars]
 # 环境变量

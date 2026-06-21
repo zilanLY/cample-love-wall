@@ -43,6 +43,58 @@ import { rateLimitMiddleware } from '../middleware/auth.js';
 
 const router = Router({ base: '/api' });
 
+/**
+ * 从数据库获取存储配置
+ * @param {*} db - 数据库实例
+ * @returns {Promise<Object>} 存储配置对象
+ */
+async function getStorageConfig(db) {
+  try {
+    // 从数据库获取 GitHub 仓库列表
+    const repos = await getSetting(db, 'github_repos');
+    const strategy = await getSetting(db, 'github_repo_strategy') || 'round_robin';
+    
+    if (repos && Array.isArray(repos) && repos.length > 0) {
+      return {
+        repos,
+        strategy
+      };
+    }
+    
+    // 兼容旧的单仓库配置
+    const token = await getSetting(db, 'github_token');
+    const owner = await getSetting(db, 'github_owner');
+    const repo = await getSetting(db, 'github_repo');
+    
+    if (token && owner && repo) {
+      const branch = await getSetting(db, 'github_branch') || 'main';
+      const path = await getSetting(db, 'github_path') || 'images';
+      const useJsDelivr = await getSetting(db, 'github_use_jsdelivr');
+      
+      return {
+        repos: [{
+          id: 'default',
+          name: '默认仓库',
+          token,
+          owner,
+          repo,
+          branch,
+          path,
+          useJsDelivr: useJsDelivr !== false,
+          enabled: true
+        }],
+        strategy
+      };
+    }
+    
+    // 没有配置 GitHub 仓库
+    throw new Error('未配置 GitHub 存储仓库，请在管理后台配置');
+  } catch (e) {
+    console.error('获取存储配置失败:', e);
+    throw e;
+  }
+}
+
 // 获取内容列表
 router.get('/posts', async (request, env) => {
   const { query } = request;
@@ -150,21 +202,27 @@ router.post('/posts', async (request, env) => {
       initialStatus = 'approved';
       reviewReason = '免审核通过';
     } else if (aiEnabled) {
-      // 获取 AI 配置（从 KV 缓存或数据库）
+      // 获取 AI 配置（优先从数据库读取，KV 作为缓存降级）
       let aiConfig = null;
       try {
-        aiConfig = await env.KV.get('config:ai', { type: 'json' });
+        const dbConfig = await getSetting(env.DB, 'ai_config_detail');
+        if (dbConfig) {
+          aiConfig = dbConfig;
+          // 异步更新 KV 缓存
+          env.KV.put('config:ai', JSON.stringify(aiConfig)).catch(e => 
+            console.warn('更新 KV 缓存失败:', e)
+          );
+        }
       } catch (e) {
-        // KV 读取失败，使用默认配置
+        console.warn('从数据库读取 AI 配置失败，尝试从 KV 读取:', e);
       }
       
-      // 如果 KV 中没有配置，尝试从数据库中读取
+      // 如果数据库中没有配置，尝试从 KV 中读取
       if (!aiConfig) {
         try {
-          const { getSetting } = await import('../db/database.js');
-          const dbConfig = await getSetting(env.DB, 'ai_config_detail');
-          if (dbConfig) {
-            aiConfig = dbConfig;
+          const kvConfig = await env.KV.get('config:ai', { type: 'json' });
+          if (kvConfig) {
+            aiConfig = kvConfig;
           }
         } catch (e) {}
       }
@@ -364,18 +422,27 @@ router.post('/posts/:id/comments', async (request, env) => {
       // AI 和人工审核都关闭，直接通过
       initialStatus = 'approved';
     } else if (aiEnabled) {
-      // AI 审核
+      // AI 审核（优先从数据库读取配置，KV 作为缓存降级）
       let aiConfig = null;
       try {
-        aiConfig = await env.KV.get('config:ai', { type: 'json' });
-      } catch (e) {}
+        const dbConfig = await getSetting(env.DB, 'ai_config_detail');
+        if (dbConfig) {
+          aiConfig = dbConfig;
+          // 异步更新 KV 缓存
+          env.KV.put('config:ai', JSON.stringify(aiConfig)).catch(e => 
+            console.warn('更新 KV 缓存失败:', e)
+          );
+        }
+      } catch (e) {
+        console.warn('从数据库读取 AI 配置失败，尝试从 KV 读取:', e);
+      }
       
-      // 如果 KV 中没有配置，尝试从数据库中读取
+      // 如果数据库中没有配置，尝试从 KV 中读取
       if (!aiConfig) {
         try {
-          const dbConfig = await getSetting(env.DB, 'ai_config_detail');
-          if (dbConfig) {
-            aiConfig = dbConfig;
+          const kvConfig = await env.KV.get('config:ai', { type: 'json' });
+          if (kvConfig) {
+            aiConfig = kvConfig;
           }
         } catch (e) {}
       }
@@ -541,10 +608,11 @@ router.post('/images/upload', async (request, env) => {
     const ip = getClientIP(request);
     const ipHash = await simpleHash(ip);
 
-    // 6. 上传到图床
+    // 6. 获取存储配置并上传
     let fileUrl;
     try {
-      fileUrl = await uploadMedia(arrayBuffer, filename);
+      const storageConfig = await getStorageConfig(env.DB);
+      fileUrl = await uploadMedia(arrayBuffer, filename, storageConfig);
     } catch (e) {
       console.error('图床上传失败:', e);
       return errorResponse(`图片上传失败：${e.message}`);
@@ -630,10 +698,11 @@ router.post('/videos/upload', async (request, env) => {
     const ip = getClientIP(request);
     const ipHash = await simpleHash(ip);
 
-    // 6. 上传到图床（图床会自动转为动态 WebP）
+    // 6. 获取存储配置并上传
     let fileUrl;
     try {
-      fileUrl = await uploadMedia(arrayBuffer, filename);
+      const storageConfig = await getStorageConfig(env.DB);
+      fileUrl = await uploadMedia(arrayBuffer, filename, storageConfig);
     } catch (e) {
       console.error('图床上传失败:', e);
       return errorResponse(`视频上传失败：${e.message}`);

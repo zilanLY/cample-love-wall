@@ -169,4 +169,11 @@ INSERT OR IGNORE INTO settings (key, value) VALUES
 ('comment_enabled', 'true'),
 ('comment_need_review', 'true'),
 ('comment_max_length', '200'),
-('comment_rate_limit', '10');
+('comment_rate_limit', '10'),
+('image_storage_provider', '"scdn"'),
+('github_token', '""'),
+('github_owner', '""'),
+('github_repo', '""'),
+('github_branch', '"main"'),
+('github_path', '"images"'),
+('github_use_jsdelivr', 'true');
